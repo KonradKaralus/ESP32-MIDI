@@ -1,5 +1,6 @@
 use core::time;
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::rc::Rc;
 
 use native_dialog::FileDialog;
@@ -34,7 +35,6 @@ slint::slint!{
 
         callback txtchng(int, string);
         callback subm_clicked <=> submit.clicked;
-        callback load_clicked <=> load.clicked;
         
         callback namechng(string);
 
@@ -43,11 +43,6 @@ slint::slint!{
         HorizontalBox {
             submit := Button { 
                 text: "Send";
-                height: 50px;
-            }
-
-            load := Button {
-                text: "Load";
                 height: 50px;
             }
 
@@ -185,17 +180,36 @@ fn send_cfg(cfg:&HashMap<u8,String>, socket:&BtStream) {
 }
 
 
+fn req_cfg(socket:&BtStream, loaded_config:&mut HashMap<u8,String>) {
+    let cfg_req:Vec<u8> = vec![0x00];
+
+    socket.send(&cfg_req).unwrap();
+
+    std::thread::sleep(time::Duration::from_secs(1));
+
+    let mut cfg_buffer:Vec<u8> = vec![0; (2*NUM_PEDALS + 1) as usize];
+
+    socket.recv(&mut cfg_buffer).unwrap();
+
+    cfg_buffer.pop();
+
+    let mut index = 0;
+
+    loop {
+        let ped = cfg_buffer[index];
+        let value = cfg_str_from_value(cfg_buffer[index+1]);
+
+        loaded_config.insert(ped, value);
+        index += 2;
+        if index as u8 >= NUM_PEDALS*2 {
+            break;
+        }
+    }
+    println!("loaded cfg: {:?}", loaded_config);
+
+}
+
 fn main() -> Result<(), std::io::Error> {
-
-    let load = || {
-        let path = FileDialog::new()
-        .set_location("~/OneDrive/Dokumente")
-        .add_filter(".json", &["json"])
-        .show_open_single_file()
-        .unwrap();
-
-        println!("{:?}",path.unwrap());
-    };
 
     let loaded_config_map: HashMap<u8,String> = HashMap::with_capacity(NUM_PEDALS as usize); 
 
@@ -230,39 +244,34 @@ fn main() -> Result<(), std::io::Error> {
         Err(err) => println!("An error occured while retrieving the sockname: {:?}", err),
     }
 
-    let cfg_req:Vec<u8> = vec![0x00];
+    let start = FileDialog::new()
+    .set_location("~/Documents")
+    .add_filter(".json", &["json"])
+    .show_open_single_file()
+    .unwrap();
 
-    socket.send(&cfg_req).unwrap();
+    
 
-    std::thread::sleep(time::Duration::from_secs(1));
+    let mut path = PathBuf::new();
+    let load;
 
-    let mut cfg_buffer:Vec<u8> = vec![0; (2*NUM_PEDALS + 1) as usize];
-
-    socket.recv(&mut cfg_buffer).unwrap();
-
-    cfg_buffer.pop();
-
-    let mut index = 0;
-
-    loop {
-        let ped = cfg_buffer[index];
-        let value = cfg_str_from_value(cfg_buffer[index+1]);
-
-        loaded_config.lock().unwrap().insert(ped, value);
-        index += 2;
-        if index as u8 >= NUM_PEDALS*2 {
-            break;
-        }
+    match start {
+        Some(p) => {path = p; load = true;},
+        None => {load=false;}
     }
 
-
-    println!("vec: {:?}", cfg_buffer);
-    println!("vec: {:?}", loaded_config);
+    if load {
+        println!("path{:?}", path);
+        todo!();
+    } else {
+        req_cfg(&socket, &mut loaded_config.lock().unwrap());
+    }
 
     let app = App::new().unwrap();
 
     let mut_app = Arc::new(app);
     let app_for_lambda = mut_app.clone();
+    let app_for_lambda2 = mut_app.clone();
 
 
     let cl = move |ped:i32, val:SharedString| {       
@@ -278,11 +287,15 @@ fn main() -> Result<(), std::io::Error> {
         send_cfg(&loaded_config_lambda_submit.lock().unwrap(), &socket);
     };
 
-
+    let namechng = move |name:SharedString| {
+        
+    };
 
 
     mut_app.on_txtchng(cl);
     mut_app.on_subm_clicked(submit);
+
+    mut_app.on_namechng(namechng);
 
 
     update_current_cfg(&mut loaded_config.lock().unwrap(), Option::None, &mut_app);
