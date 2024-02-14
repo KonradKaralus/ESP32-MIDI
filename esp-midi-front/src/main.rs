@@ -108,17 +108,17 @@ fn main() -> Result<(), std::io::Error> {
     loop {
 
         let ped = cfg_buffer[index];
-        let value = cfg_str_from_value(cfg_buffer[index]);
+        let value = cfg_str_from_value(cfg_buffer[index+1]);
 
         loaded_config.insert(ped, value);
         index += 2;
-        if index as u8 > NUM_PEDALS {
+        if index as u8 >= NUM_PEDALS*2 {
             break;
         }
     }
 
 
-
+    println!("vec: {:?}", cfg_buffer);
     println!("vec: {:?}", loaded_config);
 
     let cl = move |ped:i32, val:SharedString| {       
