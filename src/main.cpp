@@ -6,6 +6,7 @@
 
 #define AMT_PEDALS 5
 #define CC_DEFAULT 0
+#define DO_FIRST_CFG true
 
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial2, DIN_MIDI);
 
@@ -24,9 +25,9 @@ void first_config() {
     cfg.begin("config",false);
 
     cfg.putBool("init", true);
-
+    Serial.print("first_cfg");
     for(u_int8_t i=1; i<=AMT_PEDALS;i++) {
-        cfg.putUChar(std::to_string(i).c_str(), 0);
+        cfg.putUChar(std::to_string(i).c_str(), 120+i);
     }
     cfg.end();
 }
@@ -135,7 +136,7 @@ void setup() {
 
     bool init = cfg.isKey("init");
 
-    if(!init) {
+    if(!init || DO_FIRST_CFG) {
         cfg.end();
         first_config();
     }

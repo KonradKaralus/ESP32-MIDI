@@ -7,4 +7,5 @@ edition = "2021"
 
 [dependencies]
 io_bluetooth = "0.1.0"
+serde_json = "1.0.113"
 slint = "1.4.1"

@@ -16,24 +16,30 @@ const TEST:bool = true;
 slint::slint!{
     import { Button, VerticalBox, HorizontalBox, LineEdit} from "std-widgets.slint";
 
+    export struct Line  {
+            name: int,
+            value: string
+        }
+
     export component App inherits Window {
         preferred-width: 800px;
         preferred-height: 600px;
 
-        in property <[int]> names;
+        in property <[Line]> lines;
 
         callback txtchng(int, string);
         
         VerticalBox {
-            for it in names: HorizontalBox {
+            for it in lines: HorizontalBox {
                 Text {
                     height: 30px;
-                    text:it;
+                    text:it.name;
                 }
                 LineEdit {
                     height: 30px;
                     placeholder-text:"Enter";
-                    accepted(string) => {txtchng(it, string);}
+                    text: it.value;
+                    accepted(string) => {txtchng(it.name, string);}
                 }
             }
         }
@@ -58,7 +64,15 @@ fn cfg_str_from_value(value:u8) -> String {
     type_st
 }
 
+fn serialize_cfg(cfg:&HashMap<u8,String>) {
+    //let se = serde_json::to_writer(writer, cfg);
+    //serde_json::from_reader(rdr)
+}
+
 fn main() -> Result<(), std::io::Error> {
+
+    
+
 
     let mut loaded_config: HashMap<u8,String> = HashMap::with_capacity(NUM_PEDALS as usize); 
 
@@ -145,16 +159,25 @@ fn main() -> Result<(), std::io::Error> {
         socket.send(&buf).unwrap();
     };
 
-    let the_model : Rc<VecModel<i32>> =
-        Rc::new(VecModel::from(Vec::from(ped_vec)));
+    let mut line_vec = vec![];
+
+    for (name, value) in &loaded_config {
+        let l = Line {
+            name:*name as i32,
+            value:SharedString::from(value)
+        };
+        line_vec.push(l);
+    }
+    let the_model : Rc<VecModel<Line>> =
+        Rc::new(VecModel::from(line_vec));
     let the_model_rc = ModelRc::from(the_model.clone());
 
     let app =App::new().unwrap();
-    app.set_names(the_model_rc);
+    app.set_lines(the_model_rc);
 
     app.on_txtchng(cl);
 
-    // app.run().unwrap();
+    app.run().unwrap();
 
 
 
