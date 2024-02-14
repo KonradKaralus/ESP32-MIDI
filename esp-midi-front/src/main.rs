@@ -9,7 +9,6 @@ use std::sync::Mutex;
 
 use io_bluetooth::bt::{self, BtStream};
 
-use slint::Weak;
 use slint::{ModelRc, SharedString, VecModel};
 
 const NUM_PEDALS:u8 = 5; 
@@ -31,6 +30,7 @@ slint::slint!{
         in property <[Line]> lines;
 
         callback txtchng(int, string);
+        callback clicked <=> submit.clicked;
         
         VerticalBox {
             for it in lines: HorizontalBox {
@@ -45,6 +45,8 @@ slint::slint!{
                     accepted(string) => {txtchng(it.name, string);}
                 }
             }
+
+            submit := Button { text: "Send";}
         }
     }
 }
@@ -103,18 +105,43 @@ fn print_current_cfg(cfg:&HashMap<u8,String>) {
     println!("current cfg: {:?}", cfg);
 }
 
+fn send_cfg(cfg:&HashMap<u8,String>, socket:&BtStream) {
+
+    let mut output_buffer:Vec<u8> = Vec::with_capacity((NUM_PEDALS*2 + 1) as usize);
+    output_buffer.push(0xFF);
+
+    for (pedal, input) in cfg {
+        let mut num_value:u8 = 0;
+
+        if input.contains("CC") {
+            let value = input.replace("CC", "");
+            num_value = value.parse::<u8>().unwrap();
+            num_value += 128; //set first bit
+        }
+        else if input.contains("PC") {
+            let value = input.replace("PC", "");
+            num_value = value.parse::<u8>().unwrap();  
+        }
+
+        output_buffer.push(*pedal);
+        output_buffer.push(num_value);
+        }
+        if TEST {
+            println!("sending {:?}", output_buffer);
+        }
+
+        socket.send(&output_buffer).unwrap();
+}
+
+
 fn main() -> Result<(), std::io::Error> {
 
-    
-
-
-    let mut loaded_config_map: HashMap<u8,String> = HashMap::with_capacity(NUM_PEDALS as usize); 
+    let loaded_config_map: HashMap<u8,String> = HashMap::with_capacity(NUM_PEDALS as usize); 
 
     let loaded_config = Arc::new(Mutex::new(loaded_config_map));
-    let mut loaded_config_lambda = loaded_config.clone();
-
-    let ped_vec:Vec<i32> = (0..NUM_PEDALS as i32).collect();
-       
+    let loaded_config_lambda_cl = loaded_config.clone();
+    let loaded_config_lambda_submit = loaded_config.clone();
+      
     let devices = bt::discover_devices()?;
     println!("Devices:");
     for (idx, device) in devices.iter().enumerate() {
@@ -157,7 +184,6 @@ fn main() -> Result<(), std::io::Error> {
     let mut index = 0;
 
     loop {
-
         let ped = cfg_buffer[index];
         let value = cfg_str_from_value(cfg_buffer[index+1]);
 
@@ -179,36 +205,23 @@ fn main() -> Result<(), std::io::Error> {
 
 
     let cl = move |ped:i32, val:SharedString| {       
-        let input = val.as_str().to_string();
-        let mut num_value:u8 = 0;
-
-        if input.contains("CC") {
-            let value = input.replace("CC", "");
-            num_value = value.parse::<u8>().unwrap();
-            num_value += 128; //set first bit
-        }
-        else if input.contains("PC") {
-            let value = input.replace("PC", "");
-            num_value = value.parse::<u8>().unwrap();  
-        }
-
-        let buf:[u8;2] = [ped as u8, num_value];
-
-        update_current_cfg(&mut loaded_config_lambda.lock().unwrap(), Option::Some((ped,val)), &app_for_lambda);
+        update_current_cfg(&mut loaded_config_lambda_cl.lock().unwrap(), Option::Some((ped,val)), &app_for_lambda);
 
         if TEST {
-            println!("{:?}, {:?}", buf[0], buf[1]);
-            print_current_cfg(&loaded_config_lambda.lock().unwrap());
+            print_current_cfg(&loaded_config_lambda_cl.lock().unwrap());
             return;
         }
-        todo!();
-        socket.send(&buf).unwrap();
+    };
+
+    let submit = move || {
+        send_cfg(&loaded_config_lambda_submit.lock().unwrap(), &socket);
     };
 
 
 
 
-    mut_app.clone().on_txtchng(cl);
+    mut_app.on_txtchng(cl);
+    mut_app.on_clicked(submit);
 
 
     update_current_cfg(&mut loaded_config.lock().unwrap(), Option::None, &mut_app);
