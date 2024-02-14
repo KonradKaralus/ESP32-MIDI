@@ -1,3 +1,4 @@
+use core::time;
 use std::rc::Rc;
 
 use std::io;
@@ -67,6 +68,12 @@ fn main() -> Result<(), std::io::Error> {
         Ok(_) => {},
         Err(err) => println!("An error occured while retrieving the sockname: {:?}", err),
     }
+
+    let cfg_req:Vec<u8> = vec![0x00];
+
+    socket.send(&cfg_req).unwrap();
+
+    std::thread::sleep(time::Duration::from_secs(1));
 
     let mut cfg_buffer:Vec<u8> = vec![0; (2*NUM_PEDALS + 1) as usize];
 
