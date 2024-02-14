@@ -68,6 +68,12 @@ fn main() -> Result<(), std::io::Error> {
         Err(err) => println!("An error occured while retrieving the sockname: {:?}", err),
     }
 
+    let mut cfg_buffer:Vec<u8> = vec![0; (2*NUM_PEDALS + 1) as usize];
+
+    socket.recv(&mut cfg_buffer).unwrap();
+
+    println!("vec: {:?}", cfg_buffer);
+
     let cl = move |ped:i32, val:SharedString| {       
         let input = val.as_str().to_string();
         let mut num_value:u8 = 0;
@@ -101,7 +107,7 @@ fn main() -> Result<(), std::io::Error> {
 
     app.on_txtchng(cl);
 
-    app.run().unwrap();
+    // app.run().unwrap();
 
 
 
