@@ -168,6 +168,9 @@ fn main() -> Result<(), std::io::Error> {
         };
         line_vec.push(l);
     }
+
+    line_vec.sort_by(|a,b| a.name.partial_cmp(&b.name).unwrap());
+
     let the_model : Rc<VecModel<Line>> =
         Rc::new(VecModel::from(line_vec));
     let the_model_rc = ModelRc::from(the_model.clone());
