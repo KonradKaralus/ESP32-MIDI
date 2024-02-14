@@ -2,6 +2,8 @@ use core::time;
 use std::collections::HashMap;
 use std::rc::Rc;
 
+use native_dialog::FileDialog;
+
 use std::io;
 use std::iter;
 use std::sync::Arc;
@@ -28,63 +30,76 @@ slint::slint!{
         preferred-height: 600px;
 
         in property <[Line]> lines;
+        in property <string> name;
 
         callback txtchng(int, string);
-        callback clicked <=> submit.clicked;
+        callback subm_clicked <=> submit.clicked;
+        callback load_clicked <=> load.clicked;
         
-            VerticalBox {
-                horizontal-stretch: 0;
-                for it in lines: GroupBox {
-                    HorizontalBox {
-                    Text {
-                        height: 30px;
-                        text:it.name;
-                    }
-                    LineEdit {
-                        height: 30px;
-                        placeholder-text:"Enter";
-                        text: it.value;
-                        accepted(string) => {txtchng(it.name, string);}
-                        }
-                    }
-                }
+        callback namechng(string);
 
+        VerticalBox {
 
+        HorizontalBox {
+            submit := Button { 
+                text: "Send";
+                height: 50px;
+            }
 
+            load := Button {
+                text: "Load";
+                height: 50px;
+            }
 
-                HorizontalBox {
-        vertical-stretch: 1;
-        GroupBox {
-            title: @tr("ListView");
+            save := Button {
+                text: "Save";
+                height: 50px;
+            }
 
-            ListView {
-                vertical-stretch: 0;
-                for it in lines : Text {
-                        height: 30px;
-                        text:it.name;
-                    }
-                }
+            get := Button {
+                text: "Get from device";
+                height: 50px;
+            }
+        }
+
+        HorizontalBox {
+            LineEdit {
+                text: name;
+                font-size: 40px;
+                accepted(string) => {namechng(string);}
             }
         }
 
         GroupBox {
-            title: @tr("StandardListView");
             vertical-stretch: 0;
-
-            ListView {
-                vertical-stretch: 0;
-                for it in lines: LineEdit {
-                        height: 30px;
-                        placeholder-text:"Enter";
-                        text: it.value;
+                        ListView {
+                has-focus: false;
+                vertical-stretch: 1;
+                for it in lines: 
+                    HorizontalLayout {
+                        LineEdit {
+                            font-size: 35px;
+                            read-only: true;
+                            text: it.name;
+                            width: 10%;
                         }
-                    }
+                        
+                        LineEdit {
+                            placeholder-text:"Enter";
+                            text: it.value;
+                            font-size: 35px;
+
+                            width: 40%;
+                            accepted(string) => {txtchng(it.name, string);}
+                                }
+                            }
+                }
             }
         }
 
-        submit := Button { text: "Send";}
+        
     }
-}
+    }
 
 fn cfg_str_from_value(value:u8) -> String {
 
@@ -172,6 +187,16 @@ fn send_cfg(cfg:&HashMap<u8,String>, socket:&BtStream) {
 
 fn main() -> Result<(), std::io::Error> {
 
+    let load = || {
+        let path = FileDialog::new()
+        .set_location("~/OneDrive/Dokumente")
+        .add_filter(".json", &["json"])
+        .show_open_single_file()
+        .unwrap();
+
+        println!("{:?}",path.unwrap());
+    };
+
     let loaded_config_map: HashMap<u8,String> = HashMap::with_capacity(NUM_PEDALS as usize); 
 
     let loaded_config = Arc::new(Mutex::new(loaded_config_map));
@@ -257,7 +282,7 @@ fn main() -> Result<(), std::io::Error> {
 
 
     mut_app.on_txtchng(cl);
-    mut_app.on_clicked(submit);
+    mut_app.on_subm_clicked(submit);
 
 
     update_current_cfg(&mut loaded_config.lock().unwrap(), Option::None, &mut_app);
