@@ -4,9 +4,12 @@ use std::rc::Rc;
 
 use std::io;
 use std::iter;
+use std::sync::Arc;
+use std::sync::Mutex;
 
 use io_bluetooth::bt::{self, BtStream};
 
+use slint::Weak;
 use slint::{ModelRc, SharedString, VecModel};
 
 const NUM_PEDALS:u8 = 5; 
@@ -69,12 +72,46 @@ fn serialize_cfg(cfg:&HashMap<u8,String>) {
     //serde_json::from_reader(rdr)
 }
 
+
+fn update_current_cfg(cfg:&mut HashMap<u8,String>, new:Option<(i32,SharedString)>, app:&App) {
+
+    match new {
+        Some(n) => {cfg.insert(n.0 as u8, n.1.to_string());},
+        None => {}
+    }
+
+    let mut line_vec = vec![];
+
+    for (name, value) in cfg {
+        let l = Line {
+            name:*name as i32,
+            value:SharedString::from(value.clone())
+        };
+        line_vec.push(l);
+    }
+
+    line_vec.sort_by(|a,b| a.name.partial_cmp(&b.name).unwrap());
+
+    let the_model : Rc<VecModel<Line>> =
+        Rc::new(VecModel::from(line_vec));
+    let the_model_rc = ModelRc::from(the_model.clone());
+
+    app.set_lines(the_model_rc);
+}
+
+fn print_current_cfg(cfg:&HashMap<u8,String>) {
+    println!("current cfg: {:?}", cfg);
+}
+
 fn main() -> Result<(), std::io::Error> {
 
     
 
 
-    let mut loaded_config: HashMap<u8,String> = HashMap::with_capacity(NUM_PEDALS as usize); 
+    let mut loaded_config_map: HashMap<u8,String> = HashMap::with_capacity(NUM_PEDALS as usize); 
+
+    let loaded_config = Arc::new(Mutex::new(loaded_config_map));
+    let mut loaded_config_lambda = loaded_config.clone();
 
     let ped_vec:Vec<i32> = (0..NUM_PEDALS as i32).collect();
        
@@ -124,7 +161,7 @@ fn main() -> Result<(), std::io::Error> {
         let ped = cfg_buffer[index];
         let value = cfg_str_from_value(cfg_buffer[index+1]);
 
-        loaded_config.insert(ped, value);
+        loaded_config.lock().unwrap().insert(ped, value);
         index += 2;
         if index as u8 >= NUM_PEDALS*2 {
             break;
@@ -134,6 +171,12 @@ fn main() -> Result<(), std::io::Error> {
 
     println!("vec: {:?}", cfg_buffer);
     println!("vec: {:?}", loaded_config);
+
+    let app = App::new().unwrap();
+
+    let mut_app = Arc::new(app);
+    let app_for_lambda = mut_app.clone();
+
 
     let cl = move |ped:i32, val:SharedString| {       
         let input = val.as_str().to_string();
@@ -151,36 +194,26 @@ fn main() -> Result<(), std::io::Error> {
 
         let buf:[u8;2] = [ped as u8, num_value];
 
+        update_current_cfg(&mut loaded_config_lambda.lock().unwrap(), Option::None, &app_for_lambda);
+
         if TEST {
             println!("{:?}, {:?}", buf[0], buf[1]);
+            print_current_cfg(&loaded_config_lambda.lock().unwrap());
             return;
         }
-
+        todo!();
         socket.send(&buf).unwrap();
     };
 
-    let mut line_vec = vec![];
 
-    for (name, value) in &loaded_config {
-        let l = Line {
-            name:*name as i32,
-            value:SharedString::from(value)
-        };
-        line_vec.push(l);
-    }
 
-    line_vec.sort_by(|a,b| a.name.partial_cmp(&b.name).unwrap());
 
-    let the_model : Rc<VecModel<Line>> =
-        Rc::new(VecModel::from(line_vec));
-    let the_model_rc = ModelRc::from(the_model.clone());
+    mut_app.clone().on_txtchng(cl);
 
-    let app =App::new().unwrap();
-    app.set_lines(the_model_rc);
 
-    app.on_txtchng(cl);
+    update_current_cfg(&mut loaded_config.lock().unwrap(), Option::None, &mut_app);
 
-    app.run().unwrap();
+    mut_app.run().unwrap();
 
 
 
