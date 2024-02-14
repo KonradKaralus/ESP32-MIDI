@@ -16,7 +16,7 @@ const NUM_PEDALS:u8 = 5;
 const TEST:bool = true; 
 
 slint::slint!{
-    import { Button, VerticalBox, HorizontalBox, LineEdit} from "std-widgets.slint";
+    import { Button, VerticalBox, HorizontalBox, LineEdit, GroupBox, StandardListView, ListView} from "std-widgets.slint";
 
     export struct Line  {
             name: int,
@@ -32,22 +32,57 @@ slint::slint!{
         callback txtchng(int, string);
         callback clicked <=> submit.clicked;
         
-        VerticalBox {
-            for it in lines: HorizontalBox {
-                Text {
-                    height: 30px;
-                    text:it.name;
+            VerticalBox {
+                horizontal-stretch: 0;
+                for it in lines: GroupBox {
+                    HorizontalBox {
+                    Text {
+                        height: 30px;
+                        text:it.name;
+                    }
+                    LineEdit {
+                        height: 30px;
+                        placeholder-text:"Enter";
+                        text: it.value;
+                        accepted(string) => {txtchng(it.name, string);}
+                        }
+                    }
                 }
-                LineEdit {
-                    height: 30px;
-                    placeholder-text:"Enter";
-                    text: it.value;
-                    accepted(string) => {txtchng(it.name, string);}
+
+
+
+
+                HorizontalBox {
+        vertical-stretch: 1;
+        GroupBox {
+            title: @tr("ListView");
+
+            ListView {
+                vertical-stretch: 0;
+                for it in lines : Text {
+                        height: 30px;
+                        text:it.name;
+                    }
                 }
             }
-
-            submit := Button { text: "Send";}
         }
+
+        GroupBox {
+            title: @tr("StandardListView");
+            vertical-stretch: 0;
+
+            ListView {
+                vertical-stretch: 0;
+                for it in lines: LineEdit {
+                        height: 30px;
+                        placeholder-text:"Enter";
+                        text: it.value;
+                        }
+                    }
+            }
+        }
+
+        submit := Button { text: "Send";}
     }
 }
 
@@ -72,6 +107,7 @@ fn cfg_str_from_value(value:u8) -> String {
 fn serialize_cfg(cfg:&HashMap<u8,String>) {
     //let se = serde_json::to_writer(writer, cfg);
     //serde_json::from_reader(rdr)
+    todo!();
 }
 
 
