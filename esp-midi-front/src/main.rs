@@ -194,7 +194,7 @@ fn main() -> Result<(), std::io::Error> {
 
         let buf:[u8;2] = [ped as u8, num_value];
 
-        update_current_cfg(&mut loaded_config_lambda.lock().unwrap(), Option::None, &app_for_lambda);
+        update_current_cfg(&mut loaded_config_lambda.lock().unwrap(), Option::Some((ped,val)), &app_for_lambda);
 
         if TEST {
             println!("{:?}, {:?}", buf[0], buf[1]);
