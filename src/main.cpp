@@ -15,6 +15,11 @@ Preferences cfg;
 midi::Channel channel(0x0);
 BluetoothSerial SerialBT;
 
+bool states[AMT_PEDALS];
+
+u_int8_t pins[] = {5};
+std::unordered_map<u_int8_t, uint8_t> pin_routings;
+
 u_int8_t bt_input_buffer[2*AMT_PEDALS + 1];
 u_int8_t bt_output_buffer[2*AMT_PEDALS + 1];
 
@@ -43,6 +48,7 @@ void load_config() {
 
 void send_config() {
 
+
   int index = 0;
 
   for(auto& it:routings) {
@@ -61,6 +67,8 @@ void sendOutput(u_int8_t msg) {
     uint8_t type = msg & 0x80;
 
     msg = msg & 0x7F;
+
+    Serial.print(msg);
 
     if(type == 0) {
         DIN_MIDI.sendProgramChange(midi::DataByte(msg), channel);
@@ -143,20 +151,13 @@ void setup() {
 
     load_config();
 
+    pinMode(5, INPUT_PULLDOWN);
     
-
-    // if (esp_base_mac_addr_set(newMAC) == ESP_OK) {
-    //     Serial.println("MAC address set successfully");
-    // } else {
-    //     Serial.println("Failed to set MAC address");
-    // }
+    pin_routings[5] = 5;
 
     SerialBT.begin("ESP");
     SerialBT.setPin("1");
     SerialBT.register_callback(BT_EventHandler);
-
-
-    
 }
 
 
@@ -170,16 +171,25 @@ last seven bits are message
 */
 void loop() {
 
-    // for(u_int8_t i = 1; i<=AMT_PEDALS;i++) {
-    //     if(digitalRead(i)) {
-    //         sendOutput(routings[i]);
-    //     }
-    // }
+  u_int8_t pedal_nr;
 
+  for(u_int8_t pin_nr : pins) {
+    pedal_nr = pin_routings[pin_nr];
+    if(digitalRead(pin_nr)) {
+
+      if(!states[pedal_nr-1]) {
+        states[pedal_nr-1] = true;
+        sendOutput(routings[pedal_nr]);
+      }
+    } else {
+      states[pedal_nr-1] = false;
+    }
+  }
     // esp_deep_sleep(200000);
 
     if(cfg_updated) {
       load_config();
       cfg_updated = false;
+      Serial.print("new cfg applied");
     }
 }
