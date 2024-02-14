@@ -1,4 +1,5 @@
 use core::time;
+use std::collections::HashMap;
 use std::rc::Rc;
 
 use std::io;
@@ -39,7 +40,28 @@ slint::slint!{
     }
 }
 
+fn cfg_str_from_value(value:u8) -> String {
+
+    let mut type_st = "".to_string();
+    let mut input = value;
+
+    let msg_type = input & 0x80;
+    match msg_type {
+        0 => type_st += "PC",
+        1 => type_st += "CC",
+        _ => println!("invalid msg type")
+    }  
+
+    input = input & 0x7F;  
+    type_st += &(input as i32).to_string();  
+
+    type_st
+}
+
 fn main() -> Result<(), std::io::Error> {
+
+    let mut loaded_config: HashMap<u8,String> = HashMap::with_capacity(NUM_PEDALS as usize); 
+
     let ped_vec:Vec<i32> = (0..NUM_PEDALS as i32).collect();
        
     let devices = bt::discover_devices()?;
@@ -79,7 +101,25 @@ fn main() -> Result<(), std::io::Error> {
 
     socket.recv(&mut cfg_buffer).unwrap();
 
-    println!("vec: {:?}", cfg_buffer);
+    cfg_buffer.pop();
+
+    let mut index = 0;
+
+    loop {
+
+        let ped = cfg_buffer[index];
+        let value = cfg_str_from_value(cfg_buffer[index]);
+
+        loaded_config.insert(ped, value);
+        index += 2;
+        if index as u8 > NUM_PEDALS {
+            break;
+        }
+    }
+
+
+
+    println!("vec: {:?}", loaded_config);
 
     let cl = move |ped:i32, val:SharedString| {       
         let input = val.as_str().to_string();

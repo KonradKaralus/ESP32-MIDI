@@ -40,43 +40,6 @@ void load_config() {
     cfg.end();
 }
 
-void sendOutput(u_int8_t msg) {
-
-    uint8_t type = msg & 0x80;
-
-    msg = msg & 0x7F;
-
-    if(type == 0) {
-        DIN_MIDI.sendProgramChange(midi::DataByte(msg), channel);
-    } else {
-        DIN_MIDI.sendControlChange(midi::DataByte(msg), CC_DEFAULT, channel);
-    }
-}
-
-void BT_EventHandler(esp_spp_cb_event_t event, esp_spp_cb_param_t *param) {
-  if (event == ESP_SPP_START_EVT) {
-    Serial.println("Initialized SPP");
-  }
-  else if (event == ESP_SPP_SRV_OPEN_EVT ) {
-    Serial.println("Client connected");
-  }
-  else if (event == ESP_SPP_CLOSE_EVT  ) {
-    Serial.println("Client disconnected");
-  }
-  else if (event == ESP_SPP_DATA_IND_EVT ) {
-    Serial.println("Data received");
-    int index = 0;
-    while (SerialBT.available()) {
-      int incoming = SerialBT.read();
-      Serial.println(incoming);
-      bt_input_buffer[index] = incoming;
-      index++;
-    }
-    bt_input_buffer[index] = 0x00;
-    process_input();
-  }
-}
-
 void send_config() {
 
   int index = 0;
@@ -91,6 +54,19 @@ void send_config() {
 }
 
 //first: 0x00 -> request setup, first: 0xFF -> setup change
+
+void sendOutput(u_int8_t msg) {
+
+    uint8_t type = msg & 0x80;
+
+    msg = msg & 0x7F;
+
+    if(type == 0) {
+        DIN_MIDI.sendProgramChange(midi::DataByte(msg), channel);
+    } else {
+        DIN_MIDI.sendControlChange(midi::DataByte(msg), CC_DEFAULT, channel);
+    }
+}
 
 void process_input() {
   u_int8_t first = bt_input_buffer[0];
@@ -122,6 +98,34 @@ void process_input() {
 
   cfg_updated = true;
 }
+
+
+void BT_EventHandler(esp_spp_cb_event_t event, esp_spp_cb_param_t *param) {
+  if (event == ESP_SPP_START_EVT) {
+    Serial.println("Initialized SPP");
+  }
+  else if (event == ESP_SPP_SRV_OPEN_EVT ) {
+    Serial.println("Client connected");
+  }
+  else if (event == ESP_SPP_CLOSE_EVT  ) {
+    Serial.println("Client disconnected");
+  }
+  else if (event == ESP_SPP_DATA_IND_EVT ) {
+    Serial.println("Data received");
+    int index = 0;
+    while (SerialBT.available()) {
+      int incoming = SerialBT.read();
+      Serial.println(incoming);
+      bt_input_buffer[index] = incoming;
+      index++;
+    }
+    bt_input_buffer[index] = 0x00;
+    process_input();
+  }
+}
+
+
+
 
 void setup() {
     Serial.begin(115200);
