@@ -33,6 +33,7 @@ fn main() -> Result<(), std::io::Error> {
     let loaded_config_lambda_submit = loaded_config.clone();
     let loaded_config_lambda_save = loaded_config.clone();
     let loaded_config_lambda_get = loaded_config.clone();
+    let loaded_config_lambda_load = loaded_config.clone();
       
     let devices = bt::discover_devices()?;
     println!("Devices:");
@@ -73,6 +74,7 @@ fn main() -> Result<(), std::io::Error> {
     let mut_app = Arc::new(app);
     let app_for_lambda = mut_app.clone();
     let app_for_lambda2 = mut_app.clone();
+    let app_for_lambda3 = mut_app.clone();
 
     let change_value = move |ped:i32, val:SharedString| {       
         update_current_cfg(&mut loaded_config_lambda_cl.lock().unwrap(), Option::Some((ped,val)), &app_for_lambda);
@@ -90,7 +92,10 @@ fn main() -> Result<(), std::io::Error> {
     let save = move || {
         serialize_cfg(&loaded_config_lambda_save.lock().unwrap());
     };
-    let load = move || {};
+    let load = move || {
+        load_cfg(&mut loaded_config_lambda_load.lock().unwrap());
+        update_current_cfg(&mut loaded_config_lambda_load.lock().unwrap(), Option::None, &app_for_lambda3);
+    };
     let get = move || {
         req_cfg(&socket_lbd1.lock().unwrap(), &mut loaded_config_lambda_get.lock().unwrap());
         update_current_cfg(&mut loaded_config_lambda_get.lock().unwrap(), Option::None, &app_for_lambda2);
