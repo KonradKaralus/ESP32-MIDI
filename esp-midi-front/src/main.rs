@@ -1,8 +1,6 @@
 use core::time;
-use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::fs::File;
-use std::path::PathBuf;
 use std::rc::Rc;
 
 use native_dialog::FileDialog;
@@ -28,16 +26,13 @@ slint::include_modules!();
 
 fn main() -> Result<(), std::io::Error> {
 
-    let mut patch_name = "".to_string();
-    let patch_name_lambda_name = Arc::new(Mutex::new(patch_name));
-    let patch_name_lambda_save = patch_name_lambda_name.clone();
-
     let loaded_config_map: HashMap<u8,String> = HashMap::with_capacity(NUM_PEDALS as usize); 
 
     let loaded_config = Arc::new(Mutex::new(loaded_config_map));
     let loaded_config_lambda_cl = loaded_config.clone();
     let loaded_config_lambda_submit = loaded_config.clone();
     let loaded_config_lambda_save = loaded_config.clone();
+    let loaded_config_lambda_get = loaded_config.clone();
       
     let devices = bt::discover_devices()?;
     println!("Devices:");
@@ -68,12 +63,16 @@ fn main() -> Result<(), std::io::Error> {
 
     req_cfg(&socket, &mut loaded_config.lock().unwrap());
 
+    let socket_arc = Arc::new(Mutex::new(socket));
+    let socket_lbd = socket_arc.clone();
+    let socket_lbd1 = socket_arc.clone();
+
 
     let app = App::new().unwrap();
 
     let mut_app = Arc::new(app);
     let app_for_lambda = mut_app.clone();
-    // let app_for_lambda2 = mut_app.clone();
+    let app_for_lambda2 = mut_app.clone();
 
     let change_value = move |ped:i32, val:SharedString| {       
         update_current_cfg(&mut loaded_config_lambda_cl.lock().unwrap(), Option::Some((ped,val)), &app_for_lambda);
@@ -85,26 +84,23 @@ fn main() -> Result<(), std::io::Error> {
     };
 
     let submit = move || {
-        send_cfg(&loaded_config_lambda_submit.lock().unwrap(), &socket);
-    };
-
-    let namechng = move |name:SharedString| {
-        *patch_name_lambda_name.lock().unwrap() = name.into();
+        send_cfg(&loaded_config_lambda_submit.lock().unwrap(), &socket_lbd.lock().unwrap());
     };
 
     let save = move || {
-        serialize_cfg(&loaded_config_lambda_save.lock().unwrap(), &patch_name_lambda_save.lock().unwrap());
+        serialize_cfg(&loaded_config_lambda_save.lock().unwrap());
     };
     let load = move || {};
-    let get = move || {};
+    let get = move || {
+        req_cfg(&socket_lbd1.lock().unwrap(), &mut loaded_config_lambda_get.lock().unwrap());
+        update_current_cfg(&mut loaded_config_lambda_get.lock().unwrap(), Option::None, &app_for_lambda2);
+    };
 
 
 
     mut_app.on_subm_clicked(submit);
 
     mut_app.on_txtchng(change_value);
-
-    mut_app.on_namechng(namechng);
 
     mut_app.on_save_clicked(save);
     mut_app.on_load_clicked(load);
@@ -151,23 +147,21 @@ pub fn cfg_str_from_value(value:u8) -> String {
     type_st
 }
 
-pub fn serialize_cfg(cfg:&HashMap<u8,String>, name:&String) {
+pub fn serialize_cfg(cfg:&HashMap<u8,String>) {
 
     let input = FileDialog::new()
     .set_location("~/Documents")
-    // .add_filter(".json", &["json"])
-    .show_open_single_dir()
+    .add_filter(".json", &["json"])
+    .show_save_single_file()
     .unwrap();
 
-    let mut path;
+    let path;
 
     match input {
-        None => path = PathBuf::from("~/Documents"),
+        None => return,
         Some(p) => path = p
     }
 
-    let name = name.clone();
-    path.push(PathBuf::from(name + ".json"));
 
     let file = match File::create(&path) {
         Err(why) => panic!("couldn't open {}", why),
@@ -175,9 +169,31 @@ pub fn serialize_cfg(cfg:&HashMap<u8,String>, name:&String) {
     };
 
     serde_json::to_writer(file, cfg).unwrap();
-    //serde_json::from_reader(rdr)
 }
 
+pub fn load_cfg(cfg:&mut HashMap<u8,String>) {
+    let input = FileDialog::new()
+    .set_location("~/Documents")
+    .add_filter(".json", &["json"])
+    .show_open_single_file()
+    .unwrap();
+
+    let path;
+
+    match input {
+        None => return,
+        Some(p) => path = p
+    }
+
+    let file = match File::open(&path) {
+        Err(why) => panic!("couldn't open {}", why),
+        Ok(file) => file,
+    };
+
+    let new_cfg:HashMap<u8, String> = serde_json::from_reader(file).unwrap();
+    
+    *cfg = new_cfg;
+}
 
 pub fn update_current_cfg(cfg:&mut HashMap<u8,String>, new:Option<(i32,SharedString)>, app:&App) {
 

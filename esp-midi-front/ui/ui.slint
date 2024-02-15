@@ -19,8 +19,7 @@ export component App inherits Window {
     callback save_clicked <=> save.clicked;
     callback load_clicked <=> load.clicked;
     callback get_clicked <=> get.clicked;
-    
-    callback namechng(string);
+
 
     VerticalBox {
 
@@ -43,14 +42,6 @@ export component App inherits Window {
         get := Button {
             text: "Get from device";
             height: 50px;
-        }
-    }
-
-    HorizontalBox {
-        LineEdit {
-            text: name;
-            font-size: 40px;
-            accepted(string) => {namechng(string);}
         }
     }
 
