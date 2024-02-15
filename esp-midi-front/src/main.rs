@@ -1,3 +1,4 @@
+#![windows_subsystem = "windows"] 
 use core::time;
 use std::collections::HashMap;
 use std::fs::File;
@@ -18,13 +19,15 @@ use slint::SharedString;
 
 const NUM_PEDALS:u8 = 5; 
 
-const TEST:bool = true; 
+const TEST:bool = false; 
+
+const ADDRESS:&str = "78:21:84:8c:71:2a";
 
 slint::include_modules!();
 
 
-
 fn main() -> Result<(), std::io::Error> {
+
 
     let loaded_config_map: HashMap<u8,String> = HashMap::with_capacity(NUM_PEDALS as usize); 
 
@@ -36,9 +39,12 @@ fn main() -> Result<(), std::io::Error> {
     let loaded_config_lambda_load = loaded_config.clone();
       
     let devices = bt::discover_devices()?;
-    println!("Devices:");
-    for (idx, device) in devices.iter().enumerate() {
-        println!("{}: {}", idx, *device);
+    let mut device_idx=0;
+    for (idx,device) in devices.iter().enumerate() {
+        if *device.to_string() == ADDRESS.to_string() {
+            device_idx = idx;
+            break;
+        }
     }
 
     if devices.len() == 0 {
@@ -47,8 +53,6 @@ fn main() -> Result<(), std::io::Error> {
             "No Bluetooth devices found.",
         ));
     }
-
-    let device_idx = request_device_idx(devices.len())?;
 
     let socket = BtStream::connect(iter::once(&devices[device_idx]), bt::BtProtocol::RFCOMM)?;
 
@@ -71,10 +75,14 @@ fn main() -> Result<(), std::io::Error> {
 
     let app = App::new().unwrap();
 
+    console(&app, String::from("Connected to ") + ADDRESS);
+
     let mut_app = Arc::new(app);
     let app_for_lambda = mut_app.clone();
     let app_for_lambda2 = mut_app.clone();
     let app_for_lambda3 = mut_app.clone();
+    let app_for_lambda4 = mut_app.clone();
+    let app_for_lambda5 = mut_app.clone();
 
     let change_value = move |ped:i32, val:SharedString| {       
         update_current_cfg(&mut loaded_config_lambda_cl.lock().unwrap(), Option::Some((ped,val)), &app_for_lambda);
@@ -87,18 +95,23 @@ fn main() -> Result<(), std::io::Error> {
 
     let submit = move || {
         send_cfg(&loaded_config_lambda_submit.lock().unwrap(), &socket_lbd.lock().unwrap());
+        console(&app_for_lambda4, format!("Sent {:?}", loaded_config_lambda_submit.lock().unwrap()));
     };
 
     let save = move || {
         serialize_cfg(&loaded_config_lambda_save.lock().unwrap());
+        console(&app_for_lambda5, format!("Saved {:?}", loaded_config_lambda_save.lock().unwrap()));
+
     };
     let load = move || {
         load_cfg(&mut loaded_config_lambda_load.lock().unwrap());
         update_current_cfg(&mut loaded_config_lambda_load.lock().unwrap(), Option::None, &app_for_lambda3);
+        console(&app_for_lambda3, format!("Loaded {:?}", loaded_config_lambda_load.lock().unwrap()));
     };
     let get = move || {
         req_cfg(&socket_lbd1.lock().unwrap(), &mut loaded_config_lambda_get.lock().unwrap());
         update_current_cfg(&mut loaded_config_lambda_get.lock().unwrap(), Option::None, &app_for_lambda2);
+        console(&app_for_lambda2, format!("Received {:?}", loaded_config_lambda_get.lock().unwrap()));
     };
 
 
@@ -113,25 +126,15 @@ fn main() -> Result<(), std::io::Error> {
 
     update_current_cfg(&mut loaded_config.lock().unwrap(), Option::None, &mut_app);
 
+    console(&mut_app, format!("Initialized with {:?}", loaded_config.lock().unwrap()));
+
     mut_app.run().unwrap();
     Ok(())
 }
 
-
-fn request_device_idx(len: usize) -> io::Result<usize> {
-    println!("Please specify the index of the Bluetooth device you want to connect to:");
-
-    let mut buffer = String::new();
-    loop {
-        io::stdin().read_line(&mut buffer)?;
-        if let Ok(idx) = buffer.trim_end().parse::<usize>() {
-            if idx < len {
-                return Ok(idx);
-            }
-        }
-        buffer.clear();
-        println!("Invalid index. Please try again.");
-    }
+pub fn console(app:&App, s:String) {
+    let new_line = SharedString::from(s);
+    app.set_console(new_line);
 }
 
 pub fn cfg_str_from_value(value:u8) -> String {
@@ -143,7 +146,7 @@ pub fn cfg_str_from_value(value:u8) -> String {
     match msg_type {
         0 => type_st += "PC",
         1 => type_st += "CC",
-        _ => println!("invalid msg type")
+        _ => {}
     }  
 
     input = input & 0x7F;  
@@ -264,7 +267,7 @@ pub fn req_cfg(socket:&BtStream, loaded_config:&mut HashMap<u8,String>) {
 
     socket.send(&cfg_req).unwrap();
 
-    std::thread::sleep(time::Duration::from_secs(1));
+    // std::thread::sleep(time::Duration::from_secs(1));
 
     let mut cfg_buffer:Vec<u8> = vec![0; (2*NUM_PEDALS + 1) as usize];
 
@@ -278,13 +281,19 @@ pub fn req_cfg(socket:&BtStream, loaded_config:&mut HashMap<u8,String>) {
         let ped = cfg_buffer[index];
         let value = cfg_str_from_value(cfg_buffer[index+1]);
 
+        if value.is_empty() {
+            panic!("was not CC or PC")
+        }
+
         loaded_config.insert(ped, value);
         index += 2;
         if index as u8 >= NUM_PEDALS*2 {
             break;
         }
     }
-    println!("loaded cfg: {:?}", loaded_config);
+    if TEST {
+        println!("loaded cfg: {:?}", loaded_config);
+    }
 
 }
 

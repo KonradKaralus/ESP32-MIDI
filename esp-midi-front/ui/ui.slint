@@ -7,12 +7,12 @@ export struct Line  {
 
 
 export component App inherits Window {
-    preferred-width: 800px;
-    preferred-height: 600px;
+    width: 800px;
+    height: 500px;
 
     in property <[Line]> lines;
     in property <string> name;
-    in-out property <string> disp_name;
+    in property <string> console;
 
     callback txtchng(int, string);
     callback subm_clicked <=> submit.clicked;
@@ -27,49 +27,67 @@ export component App inherits Window {
         submit := Button { 
             text: "Send";
             height: 50px;
+            width:47%;
         }
 
         save := Button {
             text: "Save";
             height: 50px;
-        }
+            width:47%;
+        }}
+    HorizontalBox {
 
         load := Button {
             text: "Load";
             height: 50px;
+            width:47%;
         }
 
         get := Button {
             text: "Get from device";
+            width:47%;
             height: 50px;
         }
     }
 
     GroupBox {
+        padding: 10px;
         vertical-stretch: 0;
-                    ListView {
+            ListView {
             has-focus: false;
             vertical-stretch: 1;
             for it in lines: 
                 HorizontalLayout {
+                    padding-bottom:10px;
                     LineEdit {
-                        font-size: 35px;
+                        padding-right:10px;
+
+                        font-size: 38px;
                         read-only: true;
                         text: it.name;
                         width: 10%;
                     }
                     
                     LineEdit {
+                        padding:10px;
+
                         placeholder-text:"Enter";
                         text: it.value;
-                        font-size: 35px;
+                        font-size: 38px;
 
-                        width: 40%;
                         accepted(string) => {txtchng(it.name, string);}
                             }
                         }
             }
         }
+
+        Text {
+            text: console;   
+            height: 30px;
+        }
+
+
+
     }
 
     
