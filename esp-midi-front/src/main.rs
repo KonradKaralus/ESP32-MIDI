@@ -2,6 +2,7 @@ use core::time;
 use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::fs::File;
+use std::path::PathBuf;
 use std::rc::Rc;
 
 use native_dialog::FileDialog;
@@ -28,12 +29,15 @@ slint::include_modules!();
 fn main() -> Result<(), std::io::Error> {
 
     let mut patch_name = "".to_string();
+    let patch_name_lambda_name = Arc::new(Mutex::new(patch_name));
+    let patch_name_lambda_save = patch_name_lambda_name.clone();
 
     let loaded_config_map: HashMap<u8,String> = HashMap::with_capacity(NUM_PEDALS as usize); 
 
     let loaded_config = Arc::new(Mutex::new(loaded_config_map));
     let loaded_config_lambda_cl = loaded_config.clone();
     let loaded_config_lambda_submit = loaded_config.clone();
+    let loaded_config_lambda_save = loaded_config.clone();
       
     let devices = bt::discover_devices()?;
     println!("Devices:");
@@ -85,10 +89,12 @@ fn main() -> Result<(), std::io::Error> {
     };
 
     let namechng = move |name:SharedString| {
-        patch_name = name.into();
+        *patch_name_lambda_name.lock().unwrap() = name.into();
     };
 
-    let save = move || {};
+    let save = move || {
+        serialize_cfg(&loaded_config_lambda_save.lock().unwrap(), &patch_name_lambda_save.lock().unwrap());
+    };
     let load = move || {};
     let get = move || {};
 
@@ -145,20 +151,22 @@ pub fn cfg_str_from_value(value:u8) -> String {
     type_st
 }
 
-pub fn serialize_cfg(cfg:&HashMap<u8,String>) {
+pub fn serialize_cfg(cfg:&HashMap<u8,String>, name:&String) {
 
     let input = FileDialog::new()
     .set_location("~/Documents")
-    .add_filter(".json", &["json"])
-    .show_open_single_file()
+    // .add_filter(".json", &["json"])
+    .show_open_single_dir()
     .unwrap();
 
-    let path;
+    let mut path;
 
     match input {
         None => return,
         Some(p) => path = p
     }
+
+    path.push(PathBuf::from(name));
 
     let file = match File::open(&path) {
         Err(why) => panic!("couldn't open {}", why),
