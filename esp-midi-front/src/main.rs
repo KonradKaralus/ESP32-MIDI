@@ -162,20 +162,20 @@ pub fn serialize_cfg(cfg:&HashMap<u8,String>, name:&String) {
     let mut path;
 
     match input {
-        None => return,
+        None => path = PathBuf::from("~/Documents"),
         Some(p) => path = p
     }
 
-    path.push(PathBuf::from(name));
+    let name = name.clone();
+    path.push(PathBuf::from(name + ".json"));
 
-    let file = match File::open(&path) {
+    let file = match File::create(&path) {
         Err(why) => panic!("couldn't open {}", why),
         Ok(file) => file,
     };
 
     serde_json::to_writer(file, cfg).unwrap();
     //serde_json::from_reader(rdr)
-    todo!();
 }
 
 
