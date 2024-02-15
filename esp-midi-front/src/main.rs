@@ -1,6 +1,7 @@
 use core::time;
 use std::borrow::Borrow;
 use std::collections::HashMap;
+use std::fs::File;
 use std::rc::Rc;
 
 use native_dialog::FileDialog;
@@ -26,7 +27,7 @@ slint::include_modules!();
 
 fn main() -> Result<(), std::io::Error> {
 
-    
+    let mut patch_name = "".to_string();
 
     let loaded_config_map: HashMap<u8,String> = HashMap::with_capacity(NUM_PEDALS as usize); 
 
@@ -61,13 +62,6 @@ fn main() -> Result<(), std::io::Error> {
         Err(err) => println!("An error occured while retrieving the sockname: {:?}", err),
     }
 
-    let start = FileDialog::new()
-    .set_location("~/Documents")
-    .add_filter(".json", &["json"])
-    .show_open_single_file()
-    .unwrap();
-
-
     req_cfg(&socket, &mut loaded_config.lock().unwrap());
 
 
@@ -75,7 +69,7 @@ fn main() -> Result<(), std::io::Error> {
 
     let mut_app = Arc::new(app);
     let app_for_lambda = mut_app.clone();
-    let app_for_lambda2 = mut_app.clone();
+    // let app_for_lambda2 = mut_app.clone();
 
     let change_value = move |ped:i32, val:SharedString| {       
         update_current_cfg(&mut loaded_config_lambda_cl.lock().unwrap(), Option::Some((ped,val)), &app_for_lambda);
@@ -87,18 +81,28 @@ fn main() -> Result<(), std::io::Error> {
     };
 
     let submit = move || {
-
-        print_lines(&app_for_lambda2);
-        // send_cfg(&loaded_config_lambda_submit.lock().unwrap(), &socket);
+        send_cfg(&loaded_config_lambda_submit.lock().unwrap(), &socket);
     };
 
     let namechng = move |name:SharedString| {
-        
+        patch_name = name.into();
     };
+
+    let save = move || {};
+    let load = move || {};
+    let get = move || {};
+
+
 
     mut_app.on_subm_clicked(submit);
 
+    mut_app.on_txtchng(change_value);
+
     mut_app.on_namechng(namechng);
+
+    mut_app.on_save_clicked(save);
+    mut_app.on_load_clicked(load);
+    mut_app.on_get_clicked(get);
 
     update_current_cfg(&mut loaded_config.lock().unwrap(), Option::None, &mut_app);
 
@@ -142,7 +146,26 @@ pub fn cfg_str_from_value(value:u8) -> String {
 }
 
 pub fn serialize_cfg(cfg:&HashMap<u8,String>) {
-    //let se = serde_json::to_writer(writer, cfg);
+
+    let input = FileDialog::new()
+    .set_location("~/Documents")
+    .add_filter(".json", &["json"])
+    .show_open_single_file()
+    .unwrap();
+
+    let path;
+
+    match input {
+        None => return,
+        Some(p) => path = p
+    }
+
+    let file = match File::open(&path) {
+        Err(why) => panic!("couldn't open {}", why),
+        Ok(file) => file,
+    };
+
+    serde_json::to_writer(file, cfg).unwrap();
     //serde_json::from_reader(rdr)
     todo!();
 }
