@@ -1,0 +1,83 @@
+import { Button, VerticalBox, HorizontalBox, LineEdit, GroupBox, StandardListView, ListView} from "std-widgets.slint";
+
+export struct Line  {
+        name: int,
+        value: string
+    }
+
+
+
+export component App inherits Window {
+    preferred-width: 800px;
+    preferred-height: 600px;
+
+    in property <[Line]> lines;
+    in property <string> name;
+    in-out property <string> disp_name;
+
+    callback txtchng(int, string);
+    callback subm_clicked <=> submit.clicked;
+    
+    callback namechng(string);
+
+    VerticalBox {
+
+    HorizontalBox {
+        submit := Button { 
+            text: "Send";
+            height: 50px;
+        }
+
+        save := Button {
+            text: "Save";
+            height: 50px;
+        }
+
+        load := Button {
+            text: "Load";
+            height: 50px;
+        }
+
+        get := Button {
+            text: "Get from device";
+            height: 50px;
+        }
+    }
+
+    HorizontalBox {
+        LineEdit {
+            text: name;
+            font-size: 40px;
+            accepted(string) => {namechng(string);}
+        }
+    }
+
+    GroupBox {
+        vertical-stretch: 0;
+                    ListView {
+            has-focus: false;
+            vertical-stretch: 1;
+            for it in lines: 
+                HorizontalLayout {
+                    LineEdit {
+                        font-size: 35px;
+                        read-only: true;
+                        text: it.name;
+                        width: 10%;
+                    }
+                    
+                    LineEdit {
+                        placeholder-text:"Enter";
+                        text: it.value;
+                        font-size: 35px;
+
+                        width: 40%;
+                        accepted(string) => {txtchng(it.name, string);}
+                            }
+                        }
+            }
+        }
+    }
+
+    
+}
