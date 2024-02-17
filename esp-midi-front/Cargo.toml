@@ -14,3 +14,5 @@ slint = "1.4.1"
 
 [build-dependencies]
 slint-build = "1.4.0"
+embed-resource = "2.4.1"
+
