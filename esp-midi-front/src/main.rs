@@ -17,7 +17,7 @@ use io_bluetooth::bt::{self, BtStream};
 
 use slint::SharedString;
 
-const NUM_PEDALS:u8 = 5; 
+const NUM_PEDALS:u8 = 4; 
 
 const TEST:bool = false; 
 

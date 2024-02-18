@@ -4,9 +4,15 @@
 #include "unordered_map"
 #include "BluetoothSerial.h"
 
-#define AMT_PEDALS 5
+#define AMT_PEDALS 4
 #define CC_DEFAULT 0
-#define DO_FIRST_CFG true
+#define DEBUG true
+#define TOLERANCE_CAP 500
+
+struct pin_state {
+  bool state;
+  int signal;
+};
 
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial2, DIN_MIDI);
 
@@ -15,7 +21,8 @@ Preferences cfg;
 midi::Channel channel(0x0);
 BluetoothSerial SerialBT;
 
-bool states[AMT_PEDALS];
+pin_state states[AMT_PEDALS];
+
 
 u_int8_t pins[] = {5};
 std::unordered_map<u_int8_t, uint8_t> pin_routings;
@@ -30,7 +37,9 @@ void first_config() {
     cfg.begin("config",false);
 
     cfg.putBool("init", true);
-    Serial.print("first_cfg");
+    #ifdef DEBUG
+      Serial.print("first_cfg");
+    #endif
     for(u_int8_t i=1; i<=AMT_PEDALS;i++) {
         cfg.putUChar(std::to_string(i).c_str(), 120+i);
     }
@@ -47,8 +56,6 @@ void load_config() {
 }
 
 void send_config() {
-
-
   int index = 0;
 
   for(auto& it:routings) {
@@ -67,8 +74,10 @@ void sendOutput(u_int8_t msg) {
     uint8_t type = msg & 0x80;
 
     msg = msg & 0x7F;
-
-    Serial.print(msg);
+    
+    #ifdef DEBUG
+      Serial.print(msg);
+    #endif
 
     if(type == 0) {
         DIN_MIDI.sendProgramChange(midi::DataByte(msg), channel);
@@ -111,20 +120,30 @@ void process_input() {
 
 void BT_EventHandler(esp_spp_cb_event_t event, esp_spp_cb_param_t *param) {
   if (event == ESP_SPP_START_EVT) {
-    Serial.println("Initialized SPP");
+    #ifdef DEBUG
+      Serial.println("Initialized SPP");
+    #endif
   }
   else if (event == ESP_SPP_SRV_OPEN_EVT ) {
-    Serial.println("Client connected");
+    #ifdef DEBUG
+      Serial.println("Client connected");
+    #endif
   }
   else if (event == ESP_SPP_CLOSE_EVT  ) {
-    Serial.println("Client disconnected");
+    #ifdef DEBUG
+      Serial.println("Client disconnected");
+    #endif
   }
   else if (event == ESP_SPP_DATA_IND_EVT ) {
-    Serial.println("Data received");
+    #ifdef DEBUG
+      Serial.println("Data received");
+    #endif
     int index = 0;
     while (SerialBT.available()) {
       int incoming = SerialBT.read();
-      Serial.println(incoming);
+      #ifdef DEBUG
+        Serial.println(incoming);
+      #endif
       bt_input_buffer[index] = incoming;
       index++;
     }
@@ -133,31 +152,54 @@ void BT_EventHandler(esp_spp_cb_event_t event, esp_spp_cb_param_t *param) {
   }
 }
 
-
-
-
 void setup() {
-    Serial.begin(115200);
-    DIN_MIDI.begin(MIDI_CHANNEL_OMNI);
+  Serial.begin(115200);
 
-    cfg.begin("config",true);
+  for(int i = 0; i<AMT_PEDALS; i++) {
+    pin_state ps;
+    ps.signal = 0;
+    ps.state = false;
+    states[i] = ps;
+  }
 
-    bool init = cfg.isKey("init");
+  DIN_MIDI.begin(MIDI_CHANNEL_OMNI);
 
-    if(!init || DO_FIRST_CFG) {
-        cfg.end();
-        first_config();
-    }
+  cfg.begin("config",true);
 
-    load_config();
+  bool init = cfg.isKey("init");
 
-    pinMode(5, INPUT_PULLDOWN);
-    
-    pin_routings[5] = 5;
+  if(!init || DEBUG) {
+      cfg.end();
+      first_config();
+  }
 
-    SerialBT.begin("ESP");
-    SerialBT.setPin("1");
-    SerialBT.register_callback(BT_EventHandler);
+  load_config();
+
+  pinMode(5, INPUT_PULLDOWN);
+  
+  pin_routings[5] = 1;
+
+  SerialBT.begin("ESP");
+  SerialBT.setPin("1");
+  SerialBT.register_callback(BT_EventHandler);
+}
+
+bool check_signal(u_int8_t pedal_nr, bool input) {
+  pin_state* current = &states[pedal_nr - 1];
+
+  if(input == current->state) {
+    return false;
+  }
+
+  current->signal++;
+
+  if(current->signal > TOLERANCE_CAP) {
+    current->state = input;
+    current->signal = 0;
+    return true;
+  }
+
+  return false;
 }
 
 
@@ -175,14 +217,9 @@ void loop() {
 
   for(u_int8_t pin_nr : pins) {
     pedal_nr = pin_routings[pin_nr];
-    if(digitalRead(pin_nr)) {
 
-      if(!states[pedal_nr-1]) {
-        states[pedal_nr-1] = true;
-        sendOutput(routings[pedal_nr]);
-      }
-    } else {
-      states[pedal_nr-1] = false;
+    if(check_signal(pedal_nr, (bool)digitalRead(pin_nr))) {
+      sendOutput(routings[pedal_nr]);
     }
   }
     // esp_deep_sleep(200000);
@@ -190,6 +227,9 @@ void loop() {
     if(cfg_updated) {
       load_config();
       cfg_updated = false;
-      Serial.print("new cfg applied");
+
+      #ifdef DEBUG
+        Serial.print("new cfg applied");
+      #endif
     }
 }
