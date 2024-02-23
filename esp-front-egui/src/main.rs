@@ -22,7 +22,7 @@ fn main() -> Result<(), eframe::Error> {
 
     env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
     let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default().with_inner_size([1000.0, 600.0]).with_resizable(false),
+        viewport: egui::ViewportBuilder::default().with_inner_size([1100.0, 600.0]).with_resizable(false),
         ..Default::default()
     };
     eframe::run_native(
@@ -36,7 +36,7 @@ fn main() -> Result<(), eframe::Error> {
             };
             _cc.egui_ctx.set_style(style);
             // This gives us image support:
-            _cc.egui_ctx.set_pixels_per_point(3.2);
+            _cc.egui_ctx.set_pixels_per_point(3.0);
             Box::<MyApp>::default()
         }),
     )
@@ -55,7 +55,7 @@ impl Default for MyApp {
             return Self::with_connection();
         }
 
-        let v = vec!["CC1","PC2","CC3","PC5"];
+        let v = vec!["CC1","PC2","CC3","PC5","CC5","PC4",];
         let mut map:IndexMap<u8, String> = IndexMap::with_capacity(NUM_PEDALS as usize); 
         for i in 1..=NUM_PEDALS {
             map.insert(i, v[(i-1) as usize].to_string());
@@ -142,9 +142,9 @@ impl eframe::App for MyApp {
             });
 
             ui.horizontal(|ui| {
-                if ui.button("Print").clicked() {
-                    self.print_current_cfg();
-                }
+                // if ui.button("Print").clicked() {
+                //     self.print_current_cfg();
+                // }
                 if ui.button("Send").clicked() {
                     self.send_cfg();
                 }
@@ -161,11 +161,11 @@ impl eframe::App for MyApp {
 
             ui.separator();
 
-            let mut s:&str = &self.get_last_line();
+            // let mut s:&str = &self.get_last_line();
 
-            if ui.add_sized(ui.available_size(), TextEdit::multiline(&mut s).desired_rows(4).font(TextStyle::Small)).clicked() {
+            // if ui.add_sized(ui.available_size(), TextEdit::multiline(&mut s).desired_rows(4).font(TextStyle::Small)).clicked() {
                 
-            }
+            // }
         });
     }
 }
