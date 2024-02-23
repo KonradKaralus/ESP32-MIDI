@@ -3,9 +3,11 @@
 
 pub mod utils;
 
-const NUM_PEDALS:u8 = 4; 
+const LAPTOP:bool = false;
 
-const TEST:bool = false; 
+const NUM_PEDALS:u8 = 6; 
+
+const TEST:bool = true; 
 
 const ADDRESS:&str = "78:21:84:8c:71:2a";
 
@@ -13,14 +15,14 @@ use std::{iter, sync::{Arc, Mutex}};
 
 use indexmap::IndexMap;
 
-use eframe::egui::{self, vec2, Label, Style, TextEdit};
+use eframe::egui::{self, vec2, Align, Label, Style, TextEdit, TextStyle};
 use io_bluetooth::bt::{self, BtStream};
 
 fn main() -> Result<(), eframe::Error> {
 
     env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
     let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default().with_inner_size([700.0, 500.0]),
+        viewport: egui::ViewportBuilder::default().with_inner_size([1000.0, 600.0]).with_resizable(false),
         ..Default::default()
     };
     eframe::run_native(
@@ -42,20 +44,30 @@ fn main() -> Result<(), eframe::Error> {
 
 struct MyApp {
     columns: Arc<Mutex<IndexMap<u8, String>>>,
-    socket: Option<BtStream>
+    socket: Option<BtStream>,
+    console: Vec<String>
 }
 
 impl Default for MyApp {
     fn default() -> Self {
+
+        if LAPTOP {
+            return Self::with_connection();
+        }
+
         let v = vec!["CC1","PC2","CC3","PC5"];
         let mut map:IndexMap<u8, String> = IndexMap::with_capacity(NUM_PEDALS as usize); 
         for i in 1..=NUM_PEDALS {
             map.insert(i, v[(i-1) as usize].to_string());
         }
-        Self {
+        let mut res = Self {
             columns: Arc::new(Mutex::new(map)),
-            socket: Option::None
-        }
+            socket: Option::None,
+            console:vec!["init".to_string()]
+        };
+
+        res.console("Started without BT".to_string());
+        res
     }
 }
 
@@ -90,9 +102,13 @@ impl MyApp {
 
         let mut res = Self {
             columns: Arc::new(Mutex::new(loaded_config)),
-            socket: Option::from(socket)
+            socket: Option::from(socket),
+            console:vec!["init".to_string()]
         };
+
+        res.console("Started with BT".to_string());
         res.req_cfg();
+        res.console("Started with BT".to_string());
         
         res
     }
@@ -142,6 +158,14 @@ impl eframe::App for MyApp {
                     self.req_cfg();
                 }
             });
+
+            ui.separator();
+
+            let mut s:&str = &self.get_last_line();
+
+            if ui.add_sized(ui.available_size(), TextEdit::multiline(&mut s).desired_rows(4).font(TextStyle::Small)).clicked() {
+                
+            }
         });
     }
 }

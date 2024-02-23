@@ -2,6 +2,8 @@
 name = "esp-front-egui"
 version = "0.1.0"
 edition = "2021"
+build = "src/build.rs"
+
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -13,3 +15,6 @@ indexmap = "2.2.3"
 io_bluetooth = "0.1.0"
 native-dialog = "0.7.0"
 serde_json = "1.0.114"
+
+[build-dependencies]
+embed-resource = "2.4.1"

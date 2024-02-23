@@ -4,7 +4,7 @@
 #include "unordered_map"
 #include "BluetoothSerial.h"
 
-#define AMT_PEDALS 4
+#define AMT_PEDALS 6
 #define CC_DEFAULT 0
 #define DEBUG true
 #define TOLERANCE_CAP 500

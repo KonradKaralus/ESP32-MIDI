@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs::File};
+use std::{cmp::min, collections::HashMap, fmt::format, fs::File};
 
 use indexmap::IndexMap;
 use native_dialog::FileDialog;
@@ -6,8 +6,13 @@ use native_dialog::FileDialog;
 use crate::{MyApp, NUM_PEDALS, TEST};
 
 impl MyApp {
-    pub fn print_current_cfg(&self) {
-        println!("current cfg: {:?}", *self.columns.lock().unwrap());
+    pub fn print_current_cfg(&mut self) {
+        // println!("current cfg: {:?}", *self.columns.lock().unwrap());
+        self.console(format!("Current cfg: {}", self.cfg_str()));
+    }
+
+    pub fn cfg_str(&self) -> String {
+        format!("current cfg: {:?}", *self.columns.lock().unwrap())
     }
     
     
@@ -50,7 +55,10 @@ impl MyApp {
         if TEST {
             println!("loaded cfg: {:?}", loaded_config);
         }
-    
+        drop(loaded_config);
+        self.sort_cfg();
+
+        self.console(format!("Received cfg: {}", self.cfg_str()));
     }
     
     
@@ -72,7 +80,7 @@ impl MyApp {
         type_st
     }
 
-    pub fn serialize_cfg(&self) {
+    pub fn serialize_cfg(&mut self) {
 
         let input = FileDialog::new()
         .set_location("~/Documents")
@@ -98,6 +106,8 @@ impl MyApp {
         });
     
         serde_json::to_writer(file, &cfg).unwrap();
+
+        self.console(format!("Saved cfg"));
     }
     
     pub fn load_cfg(&mut self) {
@@ -121,16 +131,20 @@ impl MyApp {
     
         let cfg:std::collections::HashMap<u8, String> = serde_json::from_reader(file).unwrap();
 
-        let mut res = IndexMap::new();
+        self.console(format!("Loaded cfg: {:?}", cfg));
 
+        let mut res = IndexMap::new();
+        
         cfg.iter().for_each(|(k,v)| {
             res.insert(*k,v.clone());
         });
-        
+
         *self.columns.lock().unwrap() = res;
+
+        self.sort_cfg();
     }
 
-    pub fn send_cfg(&self) {
+    pub fn send_cfg(&mut self) {
 
         let mut output_buffer:Vec<u8> = Vec::with_capacity((NUM_PEDALS*2 + 1) as usize);
         output_buffer.push(0xFF);
@@ -157,8 +171,46 @@ impl MyApp {
                 println!("sending {:?}", output_buffer);
             }
             self.socket.as_ref().unwrap().send(&output_buffer).unwrap();
+
+            drop(cfg);
+
+            self.console(format!("Sent cfg: {}", self.cfg_str()));
     }
-    
+
+    fn sort_cfg(&mut self) {
+        let mut new_cfg:IndexMap<u8, String> = IndexMap::new();
+
+        let mut collect:Vec<(u8, String)> = vec![];
+
+        self.columns.lock().unwrap().iter().for_each(|(k,v)| {
+            collect.push((*k,v.clone()))
+        });
+
+        collect.sort_by(|a,b| a.0.partial_cmp(&b.0).unwrap());
+
+        collect.iter().for_each(|(k,v)| {
+            new_cfg.insert(*k,v.clone());
+        });   
+
+        *self.columns.lock().unwrap() = new_cfg;
+    }
+
+    pub fn console(&mut self, s:String) {
+        self.console.push(s);
+    }
+
+    pub fn get_last_line(&self) -> String {
+        let con = &self.console;
+
+        let l = con.len();
+        let lower = min(4, l);
+
+        let mut out = vec![];
+
+        for idx in l-lower..l {
+            out.push(con[idx].clone());
+        }
+        
+        out.join("\n")
+    }   
 }
-
-
