@@ -45,7 +45,9 @@ fn main() -> Result<(), eframe::Error> {
 struct MyApp {
     columns: Arc<Mutex<IndexMap<u8, String>>>,
     socket: Option<BtStream>,
-    console: Vec<String>
+    console: Vec<String>,
+    custom_cmd:String,
+    custom_pedal_nr:String
 }
 
 impl Default for MyApp {
@@ -63,7 +65,9 @@ impl Default for MyApp {
         let mut res = Self {
             columns: Arc::new(Mutex::new(map)),
             socket: Option::None,
-            console:vec!["init".to_string()]
+            console:vec!["init".to_string()],
+            custom_cmd:"".to_string(),
+            custom_pedal_nr:"".to_string()
         };
 
         res.console("Started without BT".to_string());
@@ -103,7 +107,9 @@ impl MyApp {
         let mut res = Self {
             columns: Arc::new(Mutex::new(loaded_config)),
             socket: Option::from(socket),
-            console:vec!["init".to_string()]
+            console:vec!["init".to_string()],
+            custom_cmd:"".to_string(),
+            custom_pedal_nr:"".to_string()
         };
 
         res.console("Started with BT".to_string());
@@ -160,6 +166,23 @@ impl eframe::App for MyApp {
             });
 
             ui.separator();
+            ui.horizontal(|ui| {
+                if ui.button("Hit Pedal").clicked() {
+                    self.send_pedal_command();
+                }
+
+                ui.add(TextEdit::singleline(&mut self.custom_pedal_nr))
+            });
+
+            ui.horizontal(|ui| {
+            
+                if ui.button("Command").clicked() {
+                    self.send_midi_command();
+                }
+                ui.add(TextEdit::singleline(&mut self.custom_cmd))
+
+
+            });
 
             // let mut s:&str = &self.get_last_line();
 

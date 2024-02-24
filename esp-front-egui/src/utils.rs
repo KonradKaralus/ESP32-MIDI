@@ -1,4 +1,4 @@
-use std::{cmp::min, collections::HashMap, fmt::format, fs::File};
+use std::{cmp::min, collections::HashMap, fs::File};
 
 use indexmap::IndexMap;
 use native_dialog::FileDialog;
@@ -80,6 +80,25 @@ impl MyApp {
         type_st
     }
 
+    fn command_from_str(input:&String) -> Option<u8> {
+            let mut num_value:u8;
+    
+            if input.contains("CC") {
+                let value = input.replace("CC", "");
+                num_value = value.parse::<u8>().unwrap();
+                num_value += 128; //set first bit
+            }
+            else if input.contains("PC") {
+                let value = input.replace("PC", "");
+                num_value = value.parse::<u8>().unwrap();  
+            }
+            else {
+                return Option::None;
+            }
+
+            Option::from(num_value)
+    }
+
     pub fn serialize_cfg(&mut self) {
 
         let input = FileDialog::new()
@@ -147,34 +166,45 @@ impl MyApp {
     pub fn send_cfg(&mut self) {
 
         let mut output_buffer:Vec<u8> = Vec::with_capacity((NUM_PEDALS*2 + 1) as usize);
-        output_buffer.push(0xFF);
+        output_buffer.push(0x01);
 
         let cfg = self.columns.lock().unwrap();
     
         for (pedal, input) in cfg.iter() {
-            let mut num_value:u8 = 0;
-    
-            if input.contains("CC") {
-                let value = input.replace("CC", "");
-                num_value = value.parse::<u8>().unwrap();
-                num_value += 128; //set first bit
-            }
-            else if input.contains("PC") {
-                let value = input.replace("PC", "");
-                num_value = value.parse::<u8>().unwrap();  
-            }
+            let num_value = Self::command_from_str(input).unwrap();
     
             output_buffer.push(*pedal);
             output_buffer.push(num_value);
-            }
-            if TEST {
-                println!("sending {:?}", output_buffer);
-            }
-            self.socket.as_ref().unwrap().send(&output_buffer).unwrap();
+        }
 
-            drop(cfg);
+        if TEST {
+            println!("sending {:?}", output_buffer);
+        }
+        self.socket.as_ref().unwrap().send(&output_buffer).unwrap();
 
-            self.console(format!("Sent cfg: {}", self.cfg_str()));
+        drop(cfg);
+
+        self.console(format!("Sent cfg: {}", self.cfg_str()));
+    }
+
+    pub fn send_midi_command(&mut self) {
+        let mut output_buffer:Vec<u8> = Vec::with_capacity((NUM_PEDALS*2 + 1) as usize);
+        output_buffer.push(0x02);
+
+        let command = Self::command_from_str(&self.custom_cmd).unwrap();
+
+        output_buffer.push(command);
+
+        self.socket.as_ref().unwrap().send(&output_buffer).unwrap();
+    }
+
+    pub fn send_pedal_command(&mut self) {
+        let mut output_buffer:Vec<u8> = Vec::with_capacity((NUM_PEDALS*2 + 1) as usize);
+        output_buffer.push(0x03);
+
+        output_buffer.push(self.custom_pedal_nr.parse().unwrap());
+
+        self.socket.as_ref().unwrap().send(&output_buffer).unwrap();
     }
 
     fn sort_cfg(&mut self) {
