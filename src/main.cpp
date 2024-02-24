@@ -67,8 +67,6 @@ void send_config() {
   SerialBT.write(bt_output_buffer, 2*AMT_PEDALS+1);
 }
 
-//first: 0x00 -> request setup, first: 0xFF -> setup change
-
 void sendOutput(u_int8_t msg) {
 
     uint8_t type = msg & 0x80;
@@ -89,11 +87,20 @@ void sendOutput(u_int8_t msg) {
 void process_input() {
   u_int8_t first = bt_input_buffer[0];
 
-  if(first == 0x00) {
-    send_config();
-    return;
-  }
+  switch (first) {
+    case 0x00:
+      send_config();
+    case 0x01:
+      update_config();
+    case 0x02:
+      send_midi_signal();
+    case 0x03:
+      pedal();
 
+  }
+}
+
+void update_config() {
   int index = 1;
 
   cfg.begin("config",false);
@@ -115,6 +122,23 @@ void process_input() {
   cfg.end();
 
   cfg_updated = true;
+}
+
+void send_midi_signal() {
+  sendOutput(bt_input_buffer[1]);
+  #ifdef DEBUG
+    Serial.print("sending single midi signal");
+  #endif
+}
+
+void pedal(){
+  if(bt_input_buffer[1] == 0x00) {
+    return;
+  }
+  sendOutput(routings[bt_input_buffer[1]]);
+  #ifdef DEBUG
+    Serial.print("pressing pedal");
+  #endif
 }
 
 
