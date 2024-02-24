@@ -84,22 +84,6 @@ void sendOutput(u_int8_t msg) {
     }
 }
 
-void process_input() {
-  u_int8_t first = bt_input_buffer[0];
-
-  switch (first) {
-    case 0x00:
-      send_config();
-    case 0x01:
-      update_config();
-    case 0x02:
-      send_midi_signal();
-    case 0x03:
-      pedal();
-
-  }
-}
-
 void update_config() {
   int index = 1;
 
@@ -140,6 +124,24 @@ void pedal(){
     Serial.print("pressing pedal");
   #endif
 }
+
+void process_input() {
+  u_int8_t first = bt_input_buffer[0];
+
+  switch (first) {
+    case 0x00:
+      send_config();
+    case 0x01:
+      update_config();
+    case 0x02:
+      send_midi_signal();
+    case 0x03:
+      pedal();
+
+  }
+}
+
+
 
 
 void BT_EventHandler(esp_spp_cb_event_t event, esp_spp_cb_param_t *param) {
