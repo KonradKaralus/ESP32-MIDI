@@ -83,11 +83,11 @@ impl MyApp {
     fn command_from_str(cmd:&String) -> Option<u8> {
             let mut num_value:u8;
 
-            let mut input:String;
+            let input:String;
 
-            match(Self::match_alias(input)) {
+            match Self::match_alias(cmd.clone()) {
                 Some(n) => input = n,
-                None => input = *cmd
+                None => input = cmd.clone()
             }
             
             if input.contains("CC") {
@@ -252,7 +252,7 @@ impl MyApp {
     }   
 
     fn match_alias(input:String) -> Option<String> {
-        match(&input) {
+        match input.as_str() {
             "down" => Option::from("CC52".to_string()),
             "up" =>  Option::from("CC53".to_string()),
             "tun" => Option::from("CC68".to_string()),
