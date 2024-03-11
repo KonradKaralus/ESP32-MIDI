@@ -59,7 +59,16 @@ void update_config() {
 }
 
 void send_tempo_change() {
-  send_tempo(bt_input_buffer[1]);
+  float f;
+
+  uint8_t *f_ptr = (uint8_t *) &f;
+
+  f_ptr[3] = bt_input_buffer[4];
+  f_ptr[2] = bt_input_buffer[3];
+  f_ptr[1] = bt_input_buffer[2];
+  f_ptr[0] = bt_input_buffer[1];
+
+  send_tempo(f);
   #ifdef DEBUG
     Serial.print("sending tempo change");
   #endif

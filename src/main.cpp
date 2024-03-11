@@ -40,8 +40,8 @@ void sendOutput(u_int8_t msg) {
     delay(200);
 }
 
-void send_tempo(u_int tempo) {
-  u_int u_delay = (60*1000000) / tempo;
+void send_tempo(float tempo) {
+  int u_delay = (60*1000000) / tempo;
 
   MIDI.sendControlChange(midi::DataByte(0x40), 120, 1);
   delayMicroseconds(u_delay);

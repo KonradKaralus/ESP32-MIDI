@@ -218,7 +218,9 @@ impl MyApp {
         let mut output_buffer:Vec<u8> = Vec::with_capacity((NUM_PEDALS*2 + 1) as usize);
         output_buffer.push(0x04);
 
-        output_buffer.push(self.tempo.parse().unwrap());
+        let f_value:f32 = self.tempo.parse().unwrap();
+
+        f_value.to_le_bytes().iter().for_each(|b| output_buffer.push(b));
 
         self.socket.as_ref().unwrap().send(&output_buffer).unwrap();
     }
