@@ -35,9 +35,14 @@ void sendOutput(u_int8_t msg) {
     if(type == 0) {
         MIDI.sendProgramChange(msg, 1);
     } else {
+      if(msg == 0x40) {
+        MIDI.sendControlChange(midi::DataByte(msg), 120, 1);
+        delay(1000);
+        MIDI.sendControlChange(midi::DataByte(msg), 120, 1);
+      } else {
         MIDI.sendControlChange(midi::DataByte(msg), CC_DEFAULT, 1);
+      }
     }
-
     delay(200);
 }
 
@@ -85,6 +90,7 @@ first bit indicates if PC or CC
 
 last seven bits are message
 */
+
 void loop() {
 
   u_int8_t pedal_nr;
