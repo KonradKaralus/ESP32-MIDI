@@ -214,6 +214,15 @@ impl MyApp {
         self.socket.as_ref().unwrap().send(&output_buffer).unwrap();
     }
 
+    pub fn send_tempo_change(&mut self) {
+        let mut output_buffer:Vec<u8> = Vec::with_capacity((NUM_PEDALS*2 + 1) as usize);
+        output_buffer.push(0x04);
+
+        output_buffer.push(self.tempo.parse().unwrap());
+
+        self.socket.as_ref().unwrap().send(&output_buffer).unwrap();
+    }
+
     fn sort_cfg(&mut self) {
         let mut new_cfg:IndexMap<u8, String> = IndexMap::new();
 

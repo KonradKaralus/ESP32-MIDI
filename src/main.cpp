@@ -35,15 +35,18 @@ void sendOutput(u_int8_t msg) {
     if(type == 0) {
         MIDI.sendProgramChange(msg, 1);
     } else {
-      if(msg == 0x40) {
-        MIDI.sendControlChange(midi::DataByte(msg), 120, 1);
-        delay(1000);
-        MIDI.sendControlChange(midi::DataByte(msg), 120, 1);
-      } else {
         MIDI.sendControlChange(midi::DataByte(msg), CC_DEFAULT, 1);
-      }
     }
     delay(200);
+}
+
+void send_tempo(u_int tempo) {
+  u_int u_delay = (60*1000000) / tempo;
+
+  MIDI.sendControlChange(midi::DataByte(0x40), 120, 1);
+  delayMicroseconds(u_delay);
+  MIDI.sendControlChange(midi::DataByte(0x40), 120, 1);
+  delay(200);
 }
 
 void setup() {

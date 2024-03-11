@@ -22,7 +22,7 @@ fn main() -> Result<(), eframe::Error> {
 
     env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
     let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default().with_inner_size([1250.0, 750.0]).with_resizable(false),
+        viewport: egui::ViewportBuilder::default().with_inner_size([1250.0, 800.0]).with_resizable(false),
         ..Default::default()
     };
     eframe::run_native(
@@ -47,7 +47,8 @@ struct MyApp {
     socket: Option<BtStream>,
     console: Vec<String>,
     custom_cmd:String,
-    custom_pedal_nr:String
+    custom_pedal_nr:String,
+    tempo:String
 }
 
 impl Default for MyApp {
@@ -67,7 +68,8 @@ impl Default for MyApp {
             socket: Option::None,
             console:vec!["init".to_string()],
             custom_cmd:"".to_string(),
-            custom_pedal_nr:"".to_string()
+            custom_pedal_nr:"".to_string(),
+            tempo:"".to_string()
         };
 
         res.console("Started without BT".to_string());
@@ -109,7 +111,8 @@ impl MyApp {
             socket: Option::from(socket),
             console:vec!["init".to_string()],
             custom_cmd:"".to_string(),
-            custom_pedal_nr:"".to_string()
+            custom_pedal_nr:"".to_string(),
+            tempo:"".to_string()
         };
 
         res.console("Started with BT".to_string());
@@ -123,19 +126,8 @@ impl MyApp {
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            // ui.heading("My egui Application");
-            // ui.horizontal(|ui| {
-            //     let name_label = ui.label("Your name: ");
-            //     ui.text_edit_singleline(&mut self.name)
-            //         .labelled_by(name_label.id);
-            // });
-            // ui.add(egui::Slider::new(&mut self.age, 0..=120).text("age"));
-            // if ui.button("Increment").clicked() {
-            //     self.age += 1;
-            // }
             ui.columns(2, |columns| {
                 
-
                 for (i,str) in self.columns.lock().unwrap().iter_mut() {
                     columns[0].add_sized(
                         vec2(40.0,20.0),
@@ -148,9 +140,6 @@ impl eframe::App for MyApp {
             });
 
             ui.horizontal(|ui| {
-                // if ui.button("Print").clicked() {
-                //     self.print_current_cfg();
-                // }
                 if ui.button("Send").clicked() {
                     self.send_cfg();
                 }
@@ -175,20 +164,18 @@ impl eframe::App for MyApp {
             });
 
             ui.horizontal(|ui| {
-            
                 if ui.button("Command").clicked() {
                     self.send_midi_command();
                 }
                 ui.add(TextEdit::singleline(&mut self.custom_cmd))
-
-
             });
 
-            // let mut s:&str = &self.get_last_line();
-
-            // if ui.add_sized(ui.available_size(), TextEdit::multiline(&mut s).desired_rows(4).font(TextStyle::Small)).clicked() {
-                
-            // }
+            ui.horizontal(|ui| {
+                if ui.button("Tempo").clicked() {
+                    self.send_tempo_change();
+                }
+                ui.add(TextEdit::singleline(&mut self.tempo))
+            });
         });
     }
 }

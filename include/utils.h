@@ -38,3 +38,5 @@ void pedal();
 void process_input();
 void BT_EventHandler(esp_spp_cb_event_t event, esp_spp_cb_param_t *param);
 bool check_signal(u_int8_t pedal_nr, bool input);
+void send_tempo(u_int tempo);
+void send_tempo_change();

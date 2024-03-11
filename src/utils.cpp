@@ -58,6 +58,14 @@ void update_config() {
   cfg_updated = true;
 }
 
+void send_tempo_change() {
+  send_tempo(bt_input_buffer[1]);
+  #ifdef DEBUG
+    Serial.print("sending tempo change");
+  #endif
+}
+
+
 void send_midi_signal() {
   sendOutput(bt_input_buffer[1]);
   #ifdef DEBUG
@@ -97,6 +105,9 @@ void process_input() {
     case 3:
       pedal();
       break;
+    case 4:
+      send_tempo_change();
+
   }
 }
 
