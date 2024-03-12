@@ -244,8 +244,9 @@ impl MyApp {
                 output_buffer.push(command);
             }
             output_buffer.push(0x00);
-            output_buffer.push(0x00);
         }
+        output_buffer.push(0x00);
+        output_buffer.push(0x00);
         println!("sending setlist: {:?}", output_buffer);
         self.socket.as_ref().unwrap().send(&output_buffer).unwrap();
     }
