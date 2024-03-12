@@ -226,29 +226,27 @@ impl MyApp {
     }
 
     pub fn send_setlist(&mut self) {
+        let mut output_buffer:Vec<u8> = Vec::new();
         output_buffer.push(0x05);
 
-        let mut output_buffer:Vec<u8> = Vec::new();
 
-        let list_items:Vec<String> = self.setlist.split("|").collect();
+        let list_items:Vec<&str> = self.setlist.split("|").collect();
 
         for item in list_items {
-            let 
+            let commands:Vec<&str> = item.split(",").collect();
 
-
-
-
+            for (idx,command) in commands.iter().enumerate() {
+                if idx == 0 {
+                    output_buffer.push(command.parse().unwrap());
+                    continue;
+                }
+                let command = Self::command_from_str(&command.to_string()).unwrap();
+                output_buffer.push(command);
+            }
+            output_buffer.push(0x00);
+            output_buffer.push(0x00);
         }
-
-        
-
-
-
-
-        let f_value:f32 = self.tempo.parse().unwrap();
-
-        f_value.to_le_bytes().iter().for_each(|b| output_buffer.push(b));
-
+        println!("sending setlist: {:?}", output_buffer);
         self.socket.as_ref().unwrap().send(&output_buffer).unwrap();
     }
 
