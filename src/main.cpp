@@ -8,7 +8,7 @@
 
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial2, MIDI);
 
-std::vector<std::vector<u_int8_t>> setlist = std::vector<std::vector<u_int8_t>>();
+std::vector<std::vector<u_int8_t>> setlist;
 
 std::unordered_map<u_int8_t, output> routings; // command-routing
 Preferences cfg;
@@ -55,6 +55,9 @@ void send_tempo(float tempo) {
 }
 
 void setlist_next() {
+  #ifdef DEBUG
+    Serial.println("setlist next");
+  #endif
   if(setlist_idx >= setlist.size()) {
     return;
   }
@@ -65,9 +68,7 @@ void setlist_next() {
   }
   setlist_idx++;
 
-  #ifdef DEBUG
-    Serial.println("setlist next");
-  #endif
+  
 }
 
 
@@ -124,10 +125,12 @@ void loop() {
     pedal_nr = pin_routings[pin_nr];
 
     if(check_signal(pedal_nr, (bool)digitalRead(pin_nr))) {
+      Serial.print("type:"); Serial.println(routings[pedal_nr].type);
+
       if(routings[pedal_nr].type == OutputType::midi_cmd) {
         sendOutput(routings[pedal_nr].command);
-      } else if(routings[pedal_nr].type == OutputType::setlist) {
-
+      } else if(routings[pedal_nr].type == OutputType::setlist_cmd) {
+        setlist_next();
       }
     }
   }
@@ -138,6 +141,8 @@ void loop() {
 
       #ifdef DEBUG
         Serial.print("new cfg applied");
+        Serial.print("cfg:"); Serial.println(routings[1].type);
+
       #endif
     }
 }

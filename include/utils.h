@@ -15,7 +15,7 @@ struct pin_state {
   int signal;
 };
 
-enum OutputType { midi_cmd, setlist };
+enum OutputType { midi_cmd, setlist_cmd };
 
 struct output {
   OutputType type;
