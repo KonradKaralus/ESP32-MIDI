@@ -8,7 +8,7 @@ void first_config() {
       Serial.print("first_cfg");
     #endif
     for(u_int8_t i=1; i<=AMT_PEDALS;i++) {
-        cfg.putUChar(std::to_string(i).c_str(), 120+i);
+        cfg.putUChar(std::to_string(i).c_str(), 100+i);
     }
     cfg.end();
 }
@@ -17,7 +17,10 @@ void load_config() {
     cfg.begin("config", true);
     for(u_int8_t i=1; i<=AMT_PEDALS;i++) {
         u_int8_t target = cfg.getUChar(std::to_string(i).c_str(), 0);
-        routings[i] = target;
+        if(target == 0XFF) {
+          routings[i] = {OutputType::setlist, 0};
+        } 
+        routings[i] = {OutputType::midi_cmd, target};
     }
     cfg.end();
 }
@@ -27,10 +30,13 @@ void send_config() {
 
   for(auto& it:routings) {
     bt_output_buffer[index] = it.first;
-    bt_output_buffer[index+1] = it.second;
+    if(it.second.type == OutputType::midi_cmd) {
+      bt_output_buffer[index+1] = 0xFF;
+    } else {
+      bt_output_buffer[index+1] = it.second.command;
+    }
     index+=2;
   }
-
   SerialBT.write(bt_output_buffer, 2*AMT_PEDALS+1);
 }
 
@@ -43,7 +49,7 @@ void update_config() {
   u_int8_t value;
 
   while(true) {
-    if(bt_input_buffer[index] == 0x00) { //0x00 as first in sequence -> break; -> Pedal no. 0 cannot exist
+    if(bt_input_buffer[index] == 0x00) {
       break;
     } 
     pedal = bt_input_buffer[index];
@@ -86,7 +92,7 @@ void pedal() {
   if(bt_input_buffer[1] == 0x00) {
     return;
   }
-  sendOutput(routings[bt_input_buffer[1]]);
+  sendOutput(routings[bt_input_buffer[1]].command);
   #ifdef DEBUG
     Serial.print("pressing pedal");
   #endif
