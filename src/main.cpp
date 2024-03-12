@@ -19,8 +19,8 @@ pin_state states[AMT_PEDALS];
 u_int8_t pins[] = {5};
 std::unordered_map<u_int8_t, uint8_t> pin_routings; // hardware-routing
 
-u_int8_t bt_input_buffer[2*AMT_PEDALS + 1];
-u_int8_t bt_output_buffer[2*AMT_PEDALS + 1];
+u_int8_t bt_input_buffer[545];
+u_int8_t bt_output_buffer[545];
 
 bool cfg_updated = false;
 
@@ -66,9 +66,7 @@ void setlist_next() {
   for(auto cmd: commands) {
     sendOutput(cmd);
   }
-  setlist_idx++;
-
-  
+  setlist_idx++;  
 }
 
 
