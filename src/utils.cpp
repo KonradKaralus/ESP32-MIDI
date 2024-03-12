@@ -89,7 +89,11 @@ void send_tempo_change() {
 }
 
 void send_midi_signal() {
-  sendOutput(bt_input_buffer[1]);
+  if(bt_input_buffer[1]==0xFF) {
+    setlist_next();
+  } else {
+    sendOutput(bt_input_buffer[1]);
+  }
   #ifdef DEBUG
     Serial.print("sending single midi signal");
   #endif
