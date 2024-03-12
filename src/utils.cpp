@@ -18,9 +18,10 @@ void load_config() {
     for(u_int8_t i=1; i<=AMT_PEDALS;i++) {
         u_int8_t target = cfg.getUChar(std::to_string(i).c_str(), 0);
         if(target == 0XFF) {
-          routings[i] = {OutputType::setlist, 0};
-        } 
+          routings[i] = {OutputType::setlist_cmd, 0};
+        } else {
         routings[i] = {OutputType::midi_cmd, target};
+        }
     }
     cfg.end();
 }
@@ -30,7 +31,7 @@ void send_config() {
 
   for(auto& it:routings) {
     bt_output_buffer[index] = it.first;
-    if(it.second.type == OutputType::midi_cmd) {
+    if(it.second.type == OutputType::setlist_cmd) {
       bt_output_buffer[index+1] = 0xFF;
     } else {
       bt_output_buffer[index+1] = it.second.command;

@@ -15,7 +15,7 @@ struct pin_state {
   int signal;
 };
 
-enum OutputType { midi_cmd, setlist };
+enum OutputType { midi_cmd, setlist_cmd };
 
 struct output {
   OutputType type;
@@ -32,8 +32,8 @@ extern u_int8_t pins[];
 extern std::unordered_map<u_int8_t, u_int8_t> pin_routings;
 extern std::vector<std::vector<u_int8_t>> setlist;
 
-extern u_int8_t bt_input_buffer[2*AMT_PEDALS + 1];
-extern u_int8_t bt_output_buffer[2*AMT_PEDALS + 1];
+extern u_int8_t bt_input_buffer[545];
+extern u_int8_t bt_output_buffer[545];
 
 extern bool cfg_updated;
 

@@ -48,7 +48,8 @@ struct MyApp {
     console: Vec<String>,
     custom_cmd:String,
     custom_pedal_nr:String,
-    tempo:String
+    tempo:String,
+    setlist:String
 }
 
 impl Default for MyApp {
@@ -69,7 +70,8 @@ impl Default for MyApp {
             console:vec!["init".to_string()],
             custom_cmd:"".to_string(),
             custom_pedal_nr:"".to_string(),
-            tempo:"".to_string()
+            tempo:"".to_string(),
+            setlist:"".to_string()
         };
 
         res.console("Started without BT".to_string());
@@ -112,7 +114,8 @@ impl MyApp {
             console:vec!["init".to_string()],
             custom_cmd:"".to_string(),
             custom_pedal_nr:"".to_string(),
-            tempo:"".to_string()
+            tempo:"".to_string(),
+            setlist:"".to_string()
         };
 
         res.console("Started with BT".to_string());
@@ -175,6 +178,13 @@ impl eframe::App for MyApp {
                     self.send_tempo_change();
                 }
                 ui.add(TextEdit::singleline(&mut self.tempo))
+            });
+
+            ui.horizontal(|ui| {
+                if ui.button("Setlist").clicked() {
+                    self.send_setlist();
+                }
+                ui.add(TextEdit::singleline(&mut self.setlist))
             });
         });
     }

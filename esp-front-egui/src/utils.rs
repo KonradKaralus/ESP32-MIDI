@@ -183,7 +183,7 @@ impl MyApp {
             output_buffer.push(*pedal);
             output_buffer.push(num_value);
         }
-
+        output_buffer.push(0x00);
         if TEST {
             println!("sending {:?}", output_buffer);
         }
@@ -221,6 +221,33 @@ impl MyApp {
         let f_value:f32 = self.tempo.parse().unwrap();
 
         f_value.to_le_bytes().iter().for_each(|b| output_buffer.push(*b));
+
+        self.socket.as_ref().unwrap().send(&output_buffer).unwrap();
+    }
+
+    pub fn send_setlist(&mut self) {
+        output_buffer.push(0x05);
+
+        let mut output_buffer:Vec<u8> = Vec::new();
+
+        let list_items:Vec<String> = self.setlist.split("|").collect();
+
+        for item in list_items {
+            let 
+
+
+
+
+        }
+
+        
+
+
+
+
+        let f_value:f32 = self.tempo.parse().unwrap();
+
+        f_value.to_le_bytes().iter().for_each(|b| output_buffer.push(b));
 
         self.socket.as_ref().unwrap().send(&output_buffer).unwrap();
     }
@@ -268,6 +295,7 @@ impl MyApp {
             "up" =>  Option::from("CC53".to_string()),
             "tun" => Option::from("CC68".to_string()),
             "snext" => Option::from("CC127".to_string()),
+            "T" => Option::from("CC64".to_string()),
             _ => Option::None
         }
     }
