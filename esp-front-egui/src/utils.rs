@@ -267,6 +267,7 @@ impl MyApp {
             "down" => Option::from("CC52".to_string()),
             "up" =>  Option::from("CC53".to_string()),
             "tun" => Option::from("CC68".to_string()),
+            "snext" => Option::from("CC127".to_string()),
             _ => Option::None
         }
     }

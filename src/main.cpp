@@ -2,25 +2,30 @@
 #include "Preferences.h"
 #include "string"
 #include "unordered_map"
+#include "vector"
 #include "BluetoothSerial.h"
 #include "utils.h"
 
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial2, MIDI);
 
+std::vector<std::vector<u_int8_t>> setlist = std::vector<std::vector<u_int8_t>>();
 
-std::unordered_map<u_int8_t, uint8_t> routings;
+std::unordered_map<u_int8_t, output> routings; // command-routing
 Preferences cfg;
 BluetoothSerial SerialBT;
 
 pin_state states[AMT_PEDALS];
 
 u_int8_t pins[] = {5};
-std::unordered_map<u_int8_t, uint8_t> pin_routings;
+std::unordered_map<u_int8_t, uint8_t> pin_routings; // hardware-routing
 
 u_int8_t bt_input_buffer[2*AMT_PEDALS + 1];
 u_int8_t bt_output_buffer[2*AMT_PEDALS + 1];
 
 bool cfg_updated = false;
+
+unsigned int setlist_idx = 0;
+
 
 void sendOutput(u_int8_t msg) {
 
@@ -48,6 +53,23 @@ void send_tempo(float tempo) {
   MIDI.sendControlChange(midi::DataByte(0x40), 120, 1);
   delay(200);
 }
+
+void setlist_next() {
+  if(setlist_idx >= setlist.size()) {
+    return;
+  }
+  auto commands = setlist[setlist_idx];
+
+  for(auto cmd: commands) {
+    sendOutput(cmd);
+  }
+  setlist_idx++;
+
+  #ifdef DEBUG
+    Serial.println("setlist next");
+  #endif
+}
+
 
 void setup() {
   MIDI.begin(1);
@@ -102,7 +124,11 @@ void loop() {
     pedal_nr = pin_routings[pin_nr];
 
     if(check_signal(pedal_nr, (bool)digitalRead(pin_nr))) {
-      sendOutput(routings[pedal_nr]);
+      if(routings[pedal_nr].type == OutputType::midi_cmd) {
+        sendOutput(routings[pedal_nr].command);
+      } else if(routings[pedal_nr].type == OutputType::setlist) {
+
+      }
     }
   }
 
