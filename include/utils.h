@@ -49,5 +49,7 @@ void BT_EventHandler(esp_spp_cb_event_t event, esp_spp_cb_param_t *param);
 bool check_signal(u_int8_t pedal_nr, bool input);
 void send_tempo(float tempo);
 void send_tempo_change();
+void update_setlist();
+void clear_setlist();
 
 void setlist_next();

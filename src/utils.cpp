@@ -1,5 +1,12 @@
 #include "utils.h"
 
+void clear_setlist() {
+  for(auto e: setlist) {
+    e.clear();
+  }
+  setlist.clear();
+}
+
 void first_config() {
     cfg.begin("config",false);
 
@@ -81,7 +88,6 @@ void send_tempo_change() {
   #endif
 }
 
-
 void send_midi_signal() {
   sendOutput(bt_input_buffer[1]);
   #ifdef DEBUG
@@ -97,6 +103,28 @@ void pedal() {
   #ifdef DEBUG
     Serial.print("pressing pedal");
   #endif
+}
+
+void update_setlist() {
+  clear_setlist();
+  int idx = 1;
+
+  std::vector<u_int8_t> item;
+
+  while(true) {
+    item.push_back(bt_input_buffer[idx]);
+    idx++;
+
+    if(bt_input_buffer[idx] == 0x00 && bt_input_buffer[idx+1] == 0x00) {
+      setlist.push_back(item);
+      break;
+    }
+    if(bt_input_buffer[idx] == 0x00) {
+      setlist.push_back(item);
+      item.clear();
+      idx++;
+    }
+  }
 }
 
 void process_input() {
@@ -123,6 +151,9 @@ void process_input() {
       break;
     case 4:
       send_tempo_change();
+      break;
+    case 5:
+      update_setlist();
 
   }
 }

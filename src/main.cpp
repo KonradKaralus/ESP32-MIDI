@@ -63,9 +63,14 @@ void setlist_next() {
   }
   auto commands = setlist[setlist_idx];
 
-  for(auto cmd: commands) {
-    sendOutput(cmd);
+  if(commands[0] != 0x01) {
+    send_tempo(commands[0]);
   }
+
+  for(int i=1;i<commands.size();i++) {
+    sendOutput(commands[i]);
+  }
+  
   setlist_idx++;  
 }
 
