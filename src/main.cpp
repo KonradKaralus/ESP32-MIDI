@@ -67,17 +67,29 @@ void tempo_list_next() {
   if(tempo_list_idx >= tempo_list.size()) {
     return;
   }
-  float tempo = tempo_list[tempo_list_idx];
-  send_tempo(tempo);
-  
   tempo_list_idx++;  
+  float tempo = tempo_list[tempo_list_idx];
+  send_tempo(tempo);  
+}
+
+//currently not in use
+void tempo_list_prev() {
+  #ifdef DEBUG
+    Serial.println("tempo list next");
+  #endif
+  if(tempo_list_idx <= tempo_list.size()) {
+    return;
+  }
+  tempo_list_idx--;  
+
+  float tempo = tempo_list[tempo_list_idx];
+  send_tempo(tempo);  
 }
 
 
 void setup() {
   MIDI.begin(1);
   leds.begin();
-  // Serial2.begin(115200);
   pinMode(5, INPUT_PULLDOWN);
   
   Serial.begin(115200);

@@ -14,18 +14,26 @@ void first_config() {
     for(u_int8_t i=1; i<=AMT_PEDALS;i++) {
         cfg.putUChar(std::to_string(i).c_str(), 100+i);
     }
+    cfg.putUChar("tempo_size", 0);
+
     cfg.end();
 }
 
 void load_config() {
     cfg.begin("config", true);
     for(u_int8_t i=1; i<=AMT_PEDALS;i++) {
-        u_int8_t target = cfg.getUChar(std::to_string(i).c_str(), 0);
-        if(target == 0XFF) {
-          routings[i] = {OutputType::tempo_list_cmd, 0};
-        } else {
-        routings[i] = {OutputType::midi_cmd, target};
-        }
+      u_int8_t target = cfg.getUChar(std::to_string(i).c_str(), 0);
+      if(target == 0XFF) {
+        routings[i] = {OutputType::tempo_list_cmd, 0};
+      } else {
+      routings[i] = {OutputType::midi_cmd, target};
+      }
+    }
+    
+    tempo_list.clear();
+    for(int i = 0; i<int(cfg.getUChar("tempo_size")); i++) {
+      float tempo = cfg.getFloat(("T"+std::to_string(i)).c_str());
+      tempo_list.push_back(tempo);
     }
     cfg.end();
 }
@@ -69,6 +77,33 @@ void update_config() {
   cfg_updated = true;
 }
 
+void update_tempo_list() {
+  cfg.begin("config",false);
+  int tempolist_idx = 0;
+  int idx = 1;
+  while(true) {
+    float f;
+    uint8_t *f_ptr = (uint8_t *) &f;
+
+    f_ptr[3] = bt_input_buffer[idx+3];
+    f_ptr[2] = bt_input_buffer[idx+2];
+    f_ptr[1] = bt_input_buffer[idx+1];
+    f_ptr[0] = bt_input_buffer[idx];
+
+    cfg.putUChar(("T"+std::to_string(tempolist_idx)).c_str(), f);
+    idx+=4;
+    if(bt_input_buffer[idx] == 0x00 && bt_input_buffer[idx+1] == 0x00) {
+      break;
+    }
+    tempolist_idx++;
+  }
+
+  cfg.putUChar("tempo_size", tempolist_idx+1);
+
+  cfg.end();
+  cfg_updated = true;
+}
+
 void send_tempo_change() {
   float f;
 
@@ -104,27 +139,6 @@ void pedal() {
   #ifdef DEBUG
     Serial.print("pressing pedal");
   #endif
-}
-
-void update_tempo_list() {
-  clear_tempo_list();
-  int idx = 1;
-  while(true) {
-    float f;
-    uint8_t *f_ptr = (uint8_t *) &f;
-
-    f_ptr[3] = bt_input_buffer[idx+3];
-    f_ptr[2] = bt_input_buffer[idx+2];
-    f_ptr[1] = bt_input_buffer[idx+1];
-    f_ptr[0] = bt_input_buffer[idx];
-
-    tempo_list.push_back(f);
-
-    idx+=4;
-    if(bt_input_buffer[idx] == 0x00 && bt_input_buffer[idx+1] == 0x00) {
-      break;
-    }
-  }
 }
 
 void process_input() {
