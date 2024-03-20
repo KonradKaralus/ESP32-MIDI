@@ -1,14 +1,20 @@
-#include "Midi.h"
+#include "MIDI.h"
 #include "Preferences.h"
 #include "string"
 #include "unordered_map"
 #include "BluetoothSerial.h"
 #include "vector"
+#include <Adafruit_NeoPixel.h>
 
 #define AMT_PEDALS 6
 #define CC_DEFAULT 0
 #define DEBUG true
 #define TOLERANCE_CAP 500
+#define PIN 4
+#define LED_COUNT 4
+#define BRIGHTNESS_STEP 0.005
+
+extern Adafruit_NeoPixel leds;
 
 struct pin_state {
   bool state;
@@ -16,6 +22,11 @@ struct pin_state {
 };
 
 enum OutputType { midi_cmd, setlist_cmd };
+enum LED { RED, GREEN, BLUE };
+
+extern std::array<u_int8_t, 3> color;
+extern float brightness; //clamped 0->1
+extern bool LED_down;
 
 struct output {
   OutputType type;
@@ -53,3 +64,7 @@ void update_setlist();
 void clear_setlist();
 
 void setlist_next();
+
+void set_LED(LED value);
+
+void cycle_LED();

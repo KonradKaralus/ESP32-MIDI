@@ -1,4 +1,4 @@
-#include "Midi.h"
+#include "MIDI.h"
 #include "Preferences.h"
 #include "string"
 #include "unordered_map"
@@ -7,6 +7,8 @@
 #include "utils.h"
 
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial2, MIDI);
+
+Adafruit_NeoPixel leds = Adafruit_NeoPixel(LED_COUNT, PIN, NEO_GRB + NEO_KHZ800);
 
 std::vector<std::vector<u_int8_t>> setlist;
 
@@ -25,7 +27,11 @@ u_int8_t bt_output_buffer[545];
 bool cfg_updated = false;
 
 unsigned int setlist_idx = 0;
+float brightness = 0;
 
+std::array<u_int8_t, 3> color;
+
+bool LED_down = false;
 
 void sendOutput(u_int8_t msg) {
 
@@ -77,6 +83,7 @@ void setlist_next() {
 
 void setup() {
   MIDI.begin(1);
+  leds.begin();
   // Serial2.begin(115200);
   pinMode(5, INPUT_PULLDOWN);
   
@@ -136,8 +143,9 @@ void loop() {
         setlist_next();
       }
     }
-  }
+  } 
 
+    cycle_LED();
     if(cfg_updated) {
       load_config();
       cfg_updated = false;

@@ -169,6 +169,7 @@ void BT_EventHandler(esp_spp_cb_event_t event, esp_spp_cb_param_t *param) {
     #endif
   }
   else if (event == ESP_SPP_SRV_OPEN_EVT ) {
+    set_LED(LED::BLUE);
     #ifdef DEBUG
       Serial.println("Client connected");
     #endif
@@ -212,4 +213,38 @@ bool check_signal(u_int8_t pedal_nr, bool input) {
   }
 
   return false;
+}
+
+void set_LED(LED value) {
+  switch (value) {
+    case LED::GREEN:
+      color = {0x00, 0xFF, 0x00};
+      break;
+    case LED::RED:
+      color = {0xFF, 0x00, 0x00};
+      break;
+    case LED::BLUE:
+      color = {0x00, 0x00, 0xFF};
+      break;
+  }
+} 
+
+void cycle_LED() {
+  if(!color.empty()) {
+    for(u_int16_t i = 0; i<LED_COUNT;i++) {
+      leds.setPixelColor(i, brightness*color[0], brightness*color[1], brightness*color[2]);
+    }
+
+    if(brightness >= 0.98) {
+      LED_down = true;
+    } else if(brightness <= 0.02) {
+      LED_down = false;
+    }
+
+    if(LED_down) {
+      brightness -= BRIGHTNESS_STEP;
+    } else {
+      brightness += BRIGHTNESS_STEP;
+    }
+  }
 }
