@@ -12,7 +12,7 @@
 #define TOLERANCE_CAP 500
 #define PIN 4
 #define LED_COUNT 4
-#define BRIGHTNESS_STEP 0.005
+#define BRIGHTNESS_STEP 0.001
 
 extern Adafruit_NeoPixel leds;
 
@@ -21,7 +21,7 @@ struct pin_state {
   int signal;
 };
 
-enum OutputType { midi_cmd, setlist_cmd };
+enum OutputType { midi_cmd, tempo_list_cmd };
 enum LED { RED, GREEN, BLUE };
 
 extern std::array<u_int8_t, 3> color;
@@ -41,10 +41,10 @@ extern pin_state states[AMT_PEDALS];
 
 extern u_int8_t pins[];
 extern std::unordered_map<u_int8_t, u_int8_t> pin_routings;
-extern std::vector<std::vector<u_int8_t>> setlist;
+extern std::vector<float> tempo_list;
 
-extern u_int8_t bt_input_buffer[545];
-extern u_int8_t bt_output_buffer[545];
+extern u_int8_t bt_input_buffer[131];
+extern u_int8_t bt_output_buffer[131];
 
 extern bool cfg_updated;
 
@@ -60,10 +60,10 @@ void BT_EventHandler(esp_spp_cb_event_t event, esp_spp_cb_param_t *param);
 bool check_signal(u_int8_t pedal_nr, bool input);
 void send_tempo(float tempo);
 void send_tempo_change();
-void update_setlist();
-void clear_setlist();
+void update_tempo_list();
+void clear_tempo_list();
 
-void setlist_next();
+void tempo_list_next();
 
 void set_LED(LED value);
 

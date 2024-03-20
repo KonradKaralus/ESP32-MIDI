@@ -218,36 +218,23 @@ impl MyApp {
         let mut output_buffer:Vec<u8> = Vec::with_capacity((NUM_PEDALS*2 + 1) as usize);
         output_buffer.push(0x04);
 
-        let f_value:f32 = self.tempo.parse().unwrap();
-
-        f_value.to_le_bytes().iter().for_each(|b| output_buffer.push(*b));
+        output_buffer.append(&mut Self::tempo_bytes_from_str(&self.tempo));
 
         self.socket.as_ref().unwrap().send(&output_buffer).unwrap();
     }
 
-    pub fn send_setlist(&mut self) {
+    pub fn send_tempo_list(&mut self) {
         let mut output_buffer:Vec<u8> = Vec::new();
         output_buffer.push(0x05);
 
+        let tempos:Vec<&str> = self.tempo_list.split(",").collect();
 
-        let list_items:Vec<&str> = self.setlist.split("|").collect();
-
-        for item in list_items {
-            let commands:Vec<&str> = item.split(",").collect();
-
-            for (idx,command) in commands.iter().enumerate() {
-                if idx == 0 {
-                    output_buffer.push(command.parse().unwrap());
-                    continue;
-                }
-                let command = Self::command_from_str(&command.to_string()).unwrap();
-                output_buffer.push(command);
-            }
-            output_buffer.push(0x00);
+        for tempo in tempos {
+            output_buffer.append(&mut Self::tempo_bytes_from_str(tempo));
         }
         output_buffer.push(0x00);
         output_buffer.push(0x00);
-        println!("sending setlist: {:?}", output_buffer);
+        println!("sending tempolist: {:?}", output_buffer);
         self.socket.as_ref().unwrap().send(&output_buffer).unwrap();
     }
 
@@ -297,5 +284,13 @@ impl MyApp {
             "T" => Option::from("CC64".to_string()),
             _ => Option::None
         }
+    }
+
+    fn tempo_bytes_from_str(input:&str) -> Vec<u8> {
+        let f_value:f32 = input.parse().unwrap();
+        let mut res = vec![];
+        f_value.to_le_bytes().iter().for_each(|b| res.push(*b));
+
+        res
     }
 }

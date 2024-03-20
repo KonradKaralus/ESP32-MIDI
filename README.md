@@ -8,7 +8,7 @@ BT commands:
 *0x02 -> send midi signal
 *0x03 -> hit pedal
 *0x04 -> change speed -> 1-4 f32 of tempo in LE
-*0x05 -> new setlist: 0x00 marks border between stages,double 0x00 is end, max size for: 32 Stages *  16 cmds + 1 start + 32 borders = 545 entries  
+*0x05 -> new tempolist: 4 bytes each tempo f32, double 0x00 is end, max size: 32 tempos -> 4*32 + 3 = 131 buffer  
 128,PC2,CC7|0,CC1,PC7|... first entry is always tempo, 1->default
 
 

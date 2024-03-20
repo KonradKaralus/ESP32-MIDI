@@ -49,7 +49,7 @@ struct MyApp {
     custom_cmd:String,
     custom_pedal_nr:String,
     tempo:String,
-    setlist:String
+    tempo_list:String
 }
 
 impl Default for MyApp {
@@ -71,7 +71,7 @@ impl Default for MyApp {
             custom_cmd:"".to_string(),
             custom_pedal_nr:"".to_string(),
             tempo:"".to_string(),
-            setlist:"".to_string()
+            tempo_list:"".to_string()
         };
 
         res.console("Started without BT".to_string());
@@ -115,7 +115,7 @@ impl MyApp {
             custom_cmd:"".to_string(),
             custom_pedal_nr:"".to_string(),
             tempo:"".to_string(),
-            setlist:"".to_string()
+            tempo_list:"".to_string()
         };
 
         res.console("Started with BT".to_string());
@@ -181,10 +181,10 @@ impl eframe::App for MyApp {
             });
 
             ui.horizontal(|ui| {
-                if ui.button("Setlist").clicked() {
-                    self.send_setlist();
+                if ui.button("Tempos").clicked() {
+                    self.send_tempo_list();
                 }
-                ui.add(TextEdit::singleline(&mut self.setlist))
+                ui.add(TextEdit::singleline(&mut self.tempo_list))
             });
         });
     }

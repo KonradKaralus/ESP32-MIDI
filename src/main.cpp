@@ -10,7 +10,7 @@ MIDI_CREATE_INSTANCE(HardwareSerial, Serial2, MIDI);
 
 Adafruit_NeoPixel leds = Adafruit_NeoPixel(LED_COUNT, PIN, NEO_GRB + NEO_KHZ800);
 
-std::vector<std::vector<u_int8_t>> setlist;
+std::vector<float> tempo_list;
 
 std::unordered_map<u_int8_t, output> routings; // command-routing
 Preferences cfg;
@@ -21,12 +21,12 @@ pin_state states[AMT_PEDALS];
 u_int8_t pins[] = {5};
 std::unordered_map<u_int8_t, uint8_t> pin_routings; // hardware-routing
 
-u_int8_t bt_input_buffer[545];
-u_int8_t bt_output_buffer[545];
+u_int8_t bt_input_buffer[131];
+u_int8_t bt_output_buffer[131];
 
 bool cfg_updated = false;
 
-unsigned int setlist_idx = 0;
+unsigned int tempo_list_idx = 0;
 float brightness = 0;
 
 std::array<u_int8_t, 3> color;
@@ -60,24 +60,17 @@ void send_tempo(float tempo) {
   delay(200);
 }
 
-void setlist_next() {
+void tempo_list_next() {
   #ifdef DEBUG
-    Serial.println("setlist next");
+    Serial.println("tempo list next");
   #endif
-  if(setlist_idx >= setlist.size()) {
+  if(tempo_list_idx >= tempo_list.size()) {
     return;
   }
-  auto commands = setlist[setlist_idx];
-
-  if(commands[0] != 0x01) {
-    send_tempo(commands[0]);
-  }
-
-  for(int i=1;i<commands.size();i++) {
-    sendOutput(commands[i]);
-  }
+  float tempo = tempo_list[tempo_list_idx];
+  send_tempo(tempo);
   
-  setlist_idx++;  
+  tempo_list_idx++;  
 }
 
 
@@ -139,8 +132,8 @@ void loop() {
 
       if(routings[pedal_nr].type == OutputType::midi_cmd) {
         sendOutput(routings[pedal_nr].command);
-      } else if(routings[pedal_nr].type == OutputType::setlist_cmd) {
-        setlist_next();
+      } else if(routings[pedal_nr].type == OutputType::tempo_list_cmd) {
+        tempo_list_next();
       }
     }
   } 

@@ -1,10 +1,7 @@
 #include "utils.h"
 
-void clear_setlist() {
-  for(auto e: setlist) {
-    e.clear();
-  }
-  setlist.clear();
+void clear_tempo_list() {
+  tempo_list.clear();
 }
 
 void first_config() {
@@ -25,7 +22,7 @@ void load_config() {
     for(u_int8_t i=1; i<=AMT_PEDALS;i++) {
         u_int8_t target = cfg.getUChar(std::to_string(i).c_str(), 0);
         if(target == 0XFF) {
-          routings[i] = {OutputType::setlist_cmd, 0};
+          routings[i] = {OutputType::tempo_list_cmd, 0};
         } else {
         routings[i] = {OutputType::midi_cmd, target};
         }
@@ -38,7 +35,7 @@ void send_config() {
 
   for(auto& it:routings) {
     bt_output_buffer[index] = it.first;
-    if(it.second.type == OutputType::setlist_cmd) {
+    if(it.second.type == OutputType::tempo_list_cmd) {
       bt_output_buffer[index+1] = 0xFF;
     } else {
       bt_output_buffer[index+1] = it.second.command;
@@ -90,7 +87,7 @@ void send_tempo_change() {
 
 void send_midi_signal() {
   if(bt_input_buffer[1]==0xFF) {
-    setlist_next();
+    tempo_list_next();
   } else {
     sendOutput(bt_input_buffer[1]);
   }
@@ -109,24 +106,23 @@ void pedal() {
   #endif
 }
 
-void update_setlist() {
-  clear_setlist();
+void update_tempo_list() {
+  clear_tempo_list();
   int idx = 1;
-
-  std::vector<u_int8_t> item;
-
   while(true) {
-    item.push_back(bt_input_buffer[idx]);
-    idx++;
+    float f;
+    uint8_t *f_ptr = (uint8_t *) &f;
 
+    f_ptr[3] = bt_input_buffer[idx+3];
+    f_ptr[2] = bt_input_buffer[idx+2];
+    f_ptr[1] = bt_input_buffer[idx+1];
+    f_ptr[0] = bt_input_buffer[idx];
+
+    tempo_list.push_back(f);
+
+    idx+=4;
     if(bt_input_buffer[idx] == 0x00 && bt_input_buffer[idx+1] == 0x00) {
-      setlist.push_back(item);
       break;
-    }
-    if(bt_input_buffer[idx] == 0x00) {
-      setlist.push_back(item);
-      item.clear();
-      idx++;
     }
   }
 }
@@ -157,7 +153,7 @@ void process_input() {
       send_tempo_change();
       break;
     case 5:
-      update_setlist();
+      update_tempo_list();
 
   }
 }
