@@ -88,7 +88,7 @@ void tempo_list_prev() {
 
 
 void setup() {
-  MIDI.begin(1);
+  MIDI.begin(1); //todo use!!!
   leds.begin();
   pinMode(5, INPUT_PULLDOWN);
   
@@ -113,8 +113,6 @@ void setup() {
   }
 
   load_config();
-
-  pinMode(5, INPUT_PULLDOWN);
   
   pin_routings[5] = 1;
 

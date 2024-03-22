@@ -76,27 +76,29 @@ class Config_Controller {
     Config_Controller();
     std::unordered_map<u_int8_t, output> routings;
     std::vector<float> tempo_list;
-  private:
-    void first_config();
     void load_config();
     void update_config();
     void update_tempo_list();
+    bool cfg_updated;
+  private:
+    void first_config();
     void clear_tempo_list();
     Preferences cfg;
 };
 
-class BT_Handle {
+class BT_Controller {
   public:
-    BT_Handle();
+    BT_Controller();
+    BT_Controller(ESP_MIDI_controller* parent);
     void send_config(Config_Controller* cfg);
     void BT_EventHandler(esp_spp_cb_event_t event, esp_spp_cb_param_t *param);
     void process_input();
+    bool cfg_updated;
   private:
     ESP_MIDI_controller* midi_controller;
     BluetoothSerial SerialBT;
-    u_int8_t bt_input_buffer[131];
-    u_int8_t bt_output_buffer[131];
-
+    // u_int8_t bt_input_buffer[131];
+    // u_int8_t bt_output_buffer[131];
 };
 
 class LED_Controller {
@@ -109,22 +111,29 @@ class LED_Controller {
     std::array<u_int8_t, 3> color;
     float brightness; //clamped 0->1
     bool LED_down;
-
-
 };
 
 class ESP_MIDI_controller {
   public:
+    ESP_MIDI_controller(
+      void (*PC)(midi::DataByte PCnr, midi::Channel channel),
+      void (*CC)(midi::DataByte CCnr, midi::DataByte CCvalue, midi::Channel channel)
+      );
     void pedal();
     void send_tempo(float tempo);
     void send_tempo_change();
-    void update_tempo_list();
-    void clear_tempo_list();
     void tempo_list_next();
-    bool cfg_updated;
+    void (*PC)(midi::DataByte PCnr, midi::Channel channel);
+    void (*CC)(midi::DataByte CCnr, midi::DataByte CCvalue, midi::Channel channel);
+    void loop();
+    void sendOutput(u_int8_t msg);
+    bool check_signal(u_int8_t pedal_nr, bool input);
   private:
     Config_Controller cfg;
+    LED_Controller LEDs;
+    BT_Controller bluetooth;
     pin_state states[AMT_PEDALS];
-    u_int8_t pins[AMT_PEDALS];
+    u_int8_t pins[1];
     std::unordered_map<u_int8_t, u_int8_t> pin_routings;
+    unsigned int tempo_list_idx;
 };
