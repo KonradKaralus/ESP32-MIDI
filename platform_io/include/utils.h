@@ -34,6 +34,8 @@ struct output {
 };
 
 extern std::unordered_map<u_int8_t, output> routings;
+extern std::vector<float> tempo_list;
+
 extern Preferences cfg;
 extern BluetoothSerial SerialBT;
 
@@ -41,7 +43,6 @@ extern pin_state states[AMT_PEDALS];
 
 extern u_int8_t pins[];
 extern std::unordered_map<u_int8_t, u_int8_t> pin_routings;
-extern std::vector<float> tempo_list;
 
 extern u_int8_t bt_input_buffer[131];
 extern u_int8_t bt_output_buffer[131];
@@ -54,17 +55,76 @@ void send_config();
 void sendOutput(u_int8_t msg);
 void update_config();
 void send_midi_signal();
-void pedal();
 void process_input();
 void BT_EventHandler(esp_spp_cb_event_t event, esp_spp_cb_param_t *param);
 bool check_signal(u_int8_t pedal_nr, bool input);
+void pedal();
 void send_tempo(float tempo);
 void send_tempo_change();
 void update_tempo_list();
 void clear_tempo_list();
-
 void tempo_list_next();
 
 void set_LED(LED value);
 
 void cycle_LED();
+
+class ESP_MIDI_controller;
+
+class Config_Controller {
+  public:
+    Config_Controller();
+    std::unordered_map<u_int8_t, output> routings;
+    std::vector<float> tempo_list;
+  private:
+    void first_config();
+    void load_config();
+    void update_config();
+    void update_tempo_list();
+    void clear_tempo_list();
+    Preferences cfg;
+};
+
+class BT_Handle {
+  public:
+    BT_Handle();
+    void send_config(Config_Controller* cfg);
+    void BT_EventHandler(esp_spp_cb_event_t event, esp_spp_cb_param_t *param);
+    void process_input();
+  private:
+    ESP_MIDI_controller* midi_controller;
+    BluetoothSerial SerialBT;
+    u_int8_t bt_input_buffer[131];
+    u_int8_t bt_output_buffer[131];
+
+};
+
+class LED_Controller {
+  public:
+    LED_Controller();
+    void set_LED(LED value);
+    void cycle_LED();
+  private:
+    Adafruit_NeoPixel leds;
+    std::array<u_int8_t, 3> color;
+    float brightness; //clamped 0->1
+    bool LED_down;
+
+
+};
+
+class ESP_MIDI_controller {
+  public:
+    void pedal();
+    void send_tempo(float tempo);
+    void send_tempo_change();
+    void update_tempo_list();
+    void clear_tempo_list();
+    void tempo_list_next();
+    bool cfg_updated;
+  private:
+    Config_Controller cfg;
+    pin_state states[AMT_PEDALS];
+    u_int8_t pins[AMT_PEDALS];
+    std::unordered_map<u_int8_t, u_int8_t> pin_routings;
+};
