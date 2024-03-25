@@ -21,8 +21,8 @@ pin_state states[AMT_PEDALS];
 u_int8_t pins[] = {5};
 std::unordered_map<u_int8_t, uint8_t> pin_routings; // hardware-routing
 
-u_int8_t bt_input_buffer[131];
-u_int8_t bt_output_buffer[131];
+u_int8_t bt_input_buffer[134];
+u_int8_t bt_output_buffer[134];
 
 bool cfg_updated = false;
 
@@ -63,6 +63,8 @@ void send_tempo(float tempo) {
 void tempo_list_next() {
   #ifdef DEBUG
     Serial.println("tempo list next");
+    Serial.println(tempo_list_idx+1);
+    Serial.println(tempo_list.size());
   #endif
   if(tempo_list_idx >= tempo_list.size()) {
     return;

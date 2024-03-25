@@ -44,10 +44,11 @@ extern pin_state states[AMT_PEDALS];
 extern u_int8_t pins[];
 extern std::unordered_map<u_int8_t, u_int8_t> pin_routings;
 
-extern u_int8_t bt_input_buffer[131];
-extern u_int8_t bt_output_buffer[131];
+extern u_int8_t bt_input_buffer[134];
+extern u_int8_t bt_output_buffer[134];
 
 extern bool cfg_updated;
+extern unsigned int tempo_list_idx;
 
 void first_config();
 void load_config();

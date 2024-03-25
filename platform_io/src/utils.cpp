@@ -90,9 +90,9 @@ void update_tempo_list() {
     f_ptr[1] = bt_input_buffer[idx+1];
     f_ptr[0] = bt_input_buffer[idx];
 
-    cfg.putUChar(("T"+std::to_string(tempolist_idx)).c_str(), f);
+    cfg.putFloat(("T"+std::to_string(tempolist_idx)).c_str(), f);
     idx+=4;
-    if(bt_input_buffer[idx] == 0x00 && bt_input_buffer[idx+1] == 0x00) {
+    if(bt_input_buffer[idx] == 0x00 && bt_input_buffer[idx+1] == 0x00 && bt_input_buffer[idx+2] == 0x00 && bt_input_buffer[idx+3] == 0x00 && bt_input_buffer[idx+4] == 0x00) {
       break;
     }
     tempolist_idx++;
@@ -100,6 +100,7 @@ void update_tempo_list() {
 
   cfg.putUChar("tempo_size", tempolist_idx+1);
 
+  tempo_list_idx = 0;
   cfg.end();
   cfg_updated = true;
 }
