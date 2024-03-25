@@ -232,8 +232,9 @@ impl MyApp {
         for tempo in tempos {
             output_buffer.append(&mut Self::tempo_bytes_from_str(tempo));
         }
-        output_buffer.push(0x00);
-        output_buffer.push(0x00);
+        for _ in 0..5 {
+            output_buffer.push(0x00);
+        }
         println!("sending tempolist: {:?}", output_buffer);
         self.socket.as_ref().unwrap().send(&output_buffer).unwrap();
     }
