@@ -15,14 +15,17 @@ use std::{iter, sync::{Arc, Mutex}};
 
 use indexmap::IndexMap;
 
-use eframe::egui::{self, vec2, Align, Label, Style, TextEdit, TextStyle};
+use eframe::egui::{self, vec2, Button, Label, Pos2, Style, TextEdit};
 use io_bluetooth::bt::{self, BtStream};
 
 fn main() -> Result<(), eframe::Error> {
 
     env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
     let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default().with_inner_size([1250.0, 800.0]).with_resizable(false),
+        viewport: egui::ViewportBuilder::default()
+        .with_inner_size([1000.0, 690.0])
+        .with_resizable(false)
+        .with_position(Pos2::new(100f32, 100f32)),
         ..Default::default()
     };
     eframe::run_native(
@@ -36,7 +39,7 @@ fn main() -> Result<(), eframe::Error> {
             };
             _cc.egui_ctx.set_style(style);
             // This gives us image support:
-            _cc.egui_ctx.set_pixels_per_point(3.0);
+            _cc.egui_ctx.set_pixels_per_point(2.5);
             Box::<MyApp>::default()
         }),
     )
@@ -133,7 +136,7 @@ impl eframe::App for MyApp {
                 
                 for (i,str) in self.columns.lock().unwrap().iter_mut() {
                     columns[0].add_sized(
-                        vec2(40.0,20.0),
+                        vec2(20.0,20.0),
                         Label::new(i.to_string()));
                     columns[1].add_sized(
                         vec2(40.0,20.0),
@@ -158,8 +161,23 @@ impl eframe::App for MyApp {
             });
 
             ui.separator();
+
             ui.horizontal(|ui| {
-                if ui.button("Hit Pedal").clicked() {
+                if ui.add(Button::new("Tempos").min_size(vec2(80f32, 20f32))).clicked() {
+                    self.send_tempo_list();
+                }
+                ui.add(TextEdit::singleline(&mut self.tempo_list))
+            });
+
+            ui.horizontal(|ui| {
+                if ui.add(Button::new("Tempo").min_size(vec2(80f32, 20f32))).clicked() {
+                    self.send_tempo_change();
+                }
+                ui.add(TextEdit::singleline(&mut self.tempo))
+            });
+            ui.horizontal(|ui| {
+
+                if ui.add(Button::new("Hit Pedal").min_size(vec2(80f32, 20f32))).clicked() {
                     self.send_pedal_command();
                 }
 
@@ -167,24 +185,10 @@ impl eframe::App for MyApp {
             });
 
             ui.horizontal(|ui| {
-                if ui.button("Command").clicked() {
+                if ui.add(Button::new("Command").min_size(vec2(80f32, 20f32))).clicked() {
                     self.send_midi_command();
                 }
                 ui.add(TextEdit::singleline(&mut self.custom_cmd))
-            });
-
-            ui.horizontal(|ui| {
-                if ui.button("Tempo").clicked() {
-                    self.send_tempo_change();
-                }
-                ui.add(TextEdit::singleline(&mut self.tempo))
-            });
-
-            ui.horizontal(|ui| {
-                if ui.button("Tempos").clicked() {
-                    self.send_tempo_list();
-                }
-                ui.add(TextEdit::singleline(&mut self.tempo_list))
             });
         });
     }
