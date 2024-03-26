@@ -5,6 +5,7 @@
 #include "BluetoothSerial.h"
 #include "vector"
 #include <Adafruit_NeoPixel.h>
+#include "pthread.h"
 
 #define AMT_PEDALS 6
 #define CC_DEFAULT 0
@@ -34,7 +35,9 @@ struct output {
 };
 
 extern std::unordered_map<u_int8_t, output> routings;
+
 extern std::vector<float> tempo_list;
+extern pthread_t tempo_thread;
 
 extern Preferences cfg;
 extern BluetoothSerial SerialBT;
@@ -61,6 +64,7 @@ void BT_EventHandler(esp_spp_cb_event_t event, esp_spp_cb_param_t *param);
 bool check_signal(u_int8_t pedal_nr, bool input);
 void pedal();
 void send_tempo(float tempo);
+void *thread_tempo(void *tempo);
 void send_tempo_change();
 void update_tempo_list();
 void clear_tempo_list();

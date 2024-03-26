@@ -6,11 +6,13 @@
 #include "BluetoothSerial.h"
 #include "utils.h"
 
+
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial2, MIDI);
 
 Adafruit_NeoPixel leds = Adafruit_NeoPixel(LED_COUNT, PIN, NEO_GRB + NEO_KHZ800);
 
 std::vector<float> tempo_list;
+pthread_t tempo_thread;
 
 std::unordered_map<u_int8_t, output> routings; // command-routing
 Preferences cfg;
@@ -51,13 +53,22 @@ void sendOutput(u_int8_t msg) {
     delay(200);
 }
 
-void send_tempo(float tempo) {
-  int u_delay = (60*1000000) / tempo;
+void *thread_tempo(void *tempo) {
+  int u_delay = (60*1000000) / *((float*)tempo);
 
   MIDI.sendControlChange(midi::DataByte(0x40), 120, 1);
   delayMicroseconds(u_delay);
   MIDI.sendControlChange(midi::DataByte(0x40), 120, 1);
   delay(200);
+
+  pthread_exit(NULL);
+}
+
+void send_tempo(float tempo) {
+  int ret = pthread_create(&tempo_thread, NULL, thread_tempo, (void *) &tempo);
+  if (ret) {
+      Serial.println("An error has occurred");
+  }
 }
 
 void tempo_list_next() {

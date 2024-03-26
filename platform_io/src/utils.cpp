@@ -115,7 +115,8 @@ void send_tempo_change() {
   f_ptr[1] = bt_input_buffer[2];
   f_ptr[0] = bt_input_buffer[1];
 
-  send_tempo(f);
+  float tempo = f;
+  send_tempo(tempo);
   #ifdef DEBUG
     Serial.print("sending tempo change");
   #endif
