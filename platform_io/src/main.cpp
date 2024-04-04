@@ -20,7 +20,7 @@ BluetoothSerial SerialBT;
 
 pin_state states[AMT_PEDALS];
 
-u_int8_t pins[] = {5};
+u_int8_t pins[] = {13,14,27,26,25,33};
 std::unordered_map<u_int8_t, uint8_t> pin_routings; // hardware-routing
 
 u_int8_t bt_input_buffer[134];
@@ -47,6 +47,7 @@ void sendOutput(u_int8_t msg) {
 
     if(type == 0) {
         MIDI.sendProgramChange(msg, 1);
+        Serial.println("PC");
     } else {
         MIDI.sendControlChange(midi::DataByte(msg), CC_DEFAULT, 1);
     }
@@ -103,16 +104,15 @@ void tempo_list_prev() {
 void setup() {
   MIDI.begin(1); //todo use!!!
   leds.begin();
-  pinMode(5, INPUT_PULLDOWN);
+
+  pinMode(13, INPUT_PULLUP);
+  pinMode(14, INPUT_PULLUP);
+  pinMode(27, INPUT_PULLUP);
+  pinMode(26, INPUT_PULLUP);
+  pinMode(25, INPUT_PULLUP);
+  pinMode(33, INPUT_PULLUP);
   
   Serial.begin(115200);
-
-  for(int i = 0; i<AMT_PEDALS; i++) {
-    pin_state ps;
-    ps.signal = 0;
-    ps.state = false;
-    states[i] = ps;
-  }
 
   Serial2.begin(31250);
 
@@ -127,7 +127,20 @@ void setup() {
 
   load_config();
   
-  pin_routings[5] = 1;
+  pin_routings[13] = 1;
+  pin_routings[14] = 2;
+  pin_routings[27] = 3;
+  pin_routings[26] = 4;
+  pin_routings[25] = 5;
+  pin_routings[33] = 6;
+
+  for(int i = 0; i<AMT_PEDALS; i++) {
+    pin_state ps;
+    ps.signal = 0;
+    // ps.state = false;
+    ps.state = (bool)digitalRead(pin_routings[pins[i]]);
+    states[i] = ps;
+  }
 
   SerialBT.begin("ESP");
   SerialBT.setPin("1");
