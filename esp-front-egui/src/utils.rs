@@ -130,7 +130,7 @@ impl MyApp {
         self.columns.lock().unwrap().iter().for_each(|(k,v)| {
             cfg.insert(*k, v.clone());
         });
-    
+        cfg.insert(0xFF, self.tempo_list.clone());
         serde_json::to_writer(file, &cfg).unwrap();
 
         self.console(format!("Saved cfg"));
@@ -155,12 +155,13 @@ impl MyApp {
             Ok(file) => file,
         };
     
-        let cfg:std::collections::HashMap<u8, String> = serde_json::from_reader(file).unwrap();
+        let mut cfg:std::collections::HashMap<u8, String> = serde_json::from_reader(file).unwrap();
 
         self.console(format!("Loaded cfg: {:?}", cfg));
 
         let mut res = IndexMap::new();
-        
+
+        self.tempo_list = cfg.remove(&0xFF).unwrap();
         cfg.iter().for_each(|(k,v)| {
             res.insert(*k,v.clone());
         });
