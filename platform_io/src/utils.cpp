@@ -206,6 +206,8 @@ void BT_EventHandler(esp_spp_cb_event_t event, esp_spp_cb_param_t *param) {
     }
     bt_input_buffer[index] = 0x00;
     process_input();
+
+    set_LED(LED::BLUE);
   }
 }
 
@@ -229,10 +231,10 @@ bool check_signal(u_int8_t pedal_nr, bool input) {
 
 void set_LED(LED value) {
   switch (value) {
-    case LED::GREEN:
+    case LED::RED:
       color = {0x00, 0xFF, 0x00};
       break;
-    case LED::RED:
+    case LED::GREEN:
       color = {0xFF, 0x00, 0x00};
       break;
     case LED::BLUE:
@@ -247,9 +249,10 @@ void cycle_LED() {
       leds.setPixelColor(i, brightness*color[0], brightness*color[1], brightness*color[2]);
     }
 
+    leds.show();
     if(brightness >= 0.98) {
       LED_down = true;
-    } else if(brightness <= 0.02) {
+    } else if(brightness <= 0.3) {
       LED_down = false;
     }
 

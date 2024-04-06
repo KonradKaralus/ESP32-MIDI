@@ -10,10 +10,10 @@
 #define AMT_PEDALS 6
 #define CC_DEFAULT 0
 #define DEBUG true
-#define TOLERANCE_CAP 500
+#define TOLERANCE_CAP 100
 #define PIN 4
 #define LED_COUNT 4
-#define BRIGHTNESS_STEP 0.001
+#define BRIGHTNESS_STEP 0.0002
 
 extern Adafruit_NeoPixel leds;
 
@@ -26,7 +26,7 @@ enum OutputType { midi_cmd, tempo_list_cmd };
 enum LED { RED, GREEN, BLUE };
 
 extern std::array<u_int8_t, 3> color;
-extern float brightness; //clamped 0->1
+extern double brightness; //clamped 0->1
 extern bool LED_down;
 
 struct output {
@@ -73,72 +73,3 @@ void tempo_list_next();
 void set_LED(LED value);
 
 void cycle_LED();
-
-class ESP_MIDI_controller;
-
-class Config_Controller {
-  public:
-    Config_Controller();
-    std::unordered_map<u_int8_t, output> routings;
-    std::vector<float> tempo_list;
-    void load_config();
-    void update_config();
-    void update_tempo_list();
-    bool cfg_updated;
-  private:
-    void first_config();
-    void clear_tempo_list();
-    Preferences cfg;
-};
-
-class BT_Controller {
-  public:
-    BT_Controller();
-    BT_Controller(ESP_MIDI_controller* parent);
-    void send_config(Config_Controller* cfg);
-    void BT_EventHandler(esp_spp_cb_event_t event, esp_spp_cb_param_t *param);
-    void process_input();
-    bool cfg_updated;
-  private:
-    ESP_MIDI_controller* midi_controller;
-    BluetoothSerial SerialBT;
-    // u_int8_t bt_input_buffer[131];
-    // u_int8_t bt_output_buffer[131];
-};
-
-class LED_Controller {
-  public:
-    LED_Controller();
-    void set_LED(LED value);
-    void cycle_LED();
-  private:
-    Adafruit_NeoPixel leds;
-    std::array<u_int8_t, 3> color;
-    float brightness; //clamped 0->1
-    bool LED_down;
-};
-
-class ESP_MIDI_controller {
-  public:
-    ESP_MIDI_controller(
-      void (*PC)(midi::DataByte PCnr, midi::Channel channel),
-      void (*CC)(midi::DataByte CCnr, midi::DataByte CCvalue, midi::Channel channel)
-      );
-    void pedal();
-    void send_tempo(float tempo);
-    void send_tempo_change();
-    void tempo_list_next();
-    void (*PC)(midi::DataByte PCnr, midi::Channel channel);
-    void (*CC)(midi::DataByte CCnr, midi::DataByte CCvalue, midi::Channel channel);
-    void loop();
-    void sendOutput(u_int8_t msg);
-    bool check_signal(u_int8_t pedal_nr, bool input);
-  private:
-    Config_Controller cfg;
-    LED_Controller LEDs;
-    BT_Controller bluetooth;
-    pin_state states[AMT_PEDALS];
-    u_int8_t pins[1];
-    std::unordered_map<u_int8_t, u_int8_t> pin_routings;
-    unsigned int tempo_list_idx;
-};

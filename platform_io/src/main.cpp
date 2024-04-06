@@ -29,14 +29,13 @@ u_int8_t bt_output_buffer[134];
 bool cfg_updated = false;
 
 unsigned int tempo_list_idx = 0;
-float brightness = 0;
+double brightness = 0.8;
 
 std::array<u_int8_t, 3> color;
 
 bool LED_down = false;
 
 void sendOutput(u_int8_t msg) {
-
     uint8_t type = msg & 0x80;
 
     msg = msg & 0x7F;
@@ -103,7 +102,6 @@ void tempo_list_prev() {
 
 void setup() {
   MIDI.begin(1); //todo use!!!
-  leds.begin();
 
   pinMode(13, INPUT_PULLUP);
   pinMode(14, INPUT_PULLUP);
@@ -145,6 +143,9 @@ void setup() {
   SerialBT.begin("ESP");
   SerialBT.setPin("1");
   SerialBT.register_callback(BT_EventHandler);
+
+  set_LED(LED::GREEN);
+  leds.begin();
 }
 
 /*
@@ -165,14 +166,19 @@ void loop() {
 
     if(check_signal(pedal_nr, (bool)digitalRead(pin_nr))) {
       Serial.print("type:"); Serial.println(routings[pedal_nr].type);
+      set_LED(LED::GREEN);
+
 
       if(routings[pedal_nr].type == OutputType::midi_cmd) {
         sendOutput(routings[pedal_nr].command);
       } else if(routings[pedal_nr].type == OutputType::tempo_list_cmd) {
         tempo_list_next();
       }
+
     }
   } 
+
+
 
     cycle_LED();
     if(cfg_updated) {
