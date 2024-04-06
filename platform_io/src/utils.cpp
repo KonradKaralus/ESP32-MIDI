@@ -187,6 +187,7 @@ void BT_EventHandler(esp_spp_cb_event_t event, esp_spp_cb_param_t *param) {
     #endif
   }
   else if (event == ESP_SPP_CLOSE_EVT  ) {
+    set_LED(LED::RED);
     #ifdef DEBUG
       Serial.println("Client disconnected");
     #endif
@@ -231,14 +232,15 @@ bool check_signal(u_int8_t pedal_nr, bool input) {
 
 void set_LED(LED value) {
   switch (value) {
+    //R<->G
     case LED::RED:
       color = {0x00, 0xFF, 0x00};
       break;
     case LED::GREEN:
-      color = {0xFF, 0x00, 0x00};
+      color = {217, 41, 30};
       break;
     case LED::BLUE:
-      color = {0x00, 0x00, 0xFF};
+      color = {0, 31, 0xFF};
       break;
   }
 } 
