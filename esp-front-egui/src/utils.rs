@@ -1,4 +1,4 @@
-use std::{cmp::min, collections::HashMap, fs::File};
+use std::{collections::HashMap, fs::File};
 
 use indexmap::IndexMap;
 use native_dialog::FileDialog;
@@ -7,8 +7,7 @@ use crate::{MyApp, NUM_PEDALS, TEST};
 
 impl MyApp {
     pub fn print_current_cfg(&mut self) {
-        // println!("current cfg: {:?}", *self.columns.lock().unwrap());
-        self.console(format!("Current cfg: {}", self.cfg_str()));
+        println!("current cfg: {:?}", *self.columns.lock().unwrap());
     }
 
     pub fn cfg_str(&self) -> String {
@@ -25,9 +24,7 @@ impl MyApp {
         };
     
         socket.send(&cfg_req).unwrap();
-    
-        // std::thread::sleep(time::Duration::from_secs(1));
-    
+        
         let mut cfg_buffer:Vec<u8> = vec![0; (2*NUM_PEDALS + 1) as usize];
     
         socket.recv(&mut cfg_buffer).unwrap();
@@ -45,8 +42,13 @@ impl MyApp {
             if value.is_empty() {
                 panic!("was not CC or PC")
             }
+
+            match self.match_alias(value.clone()) {
+                Some(s) => loaded_config.insert(ped, s),
+                None => loaded_config.insert(ped, value)
+            };
     
-            loaded_config.insert(ped, value);
+            
             index += 2;
             if index as u8 >= NUM_PEDALS*2 {
                 break;
@@ -57,8 +59,6 @@ impl MyApp {
         }
         drop(loaded_config);
         self.sort_cfg();
-
-        self.console(format!("Received cfg: {}", self.cfg_str()));
     }
     
     
@@ -80,12 +80,12 @@ impl MyApp {
         type_st
     }
 
-    fn command_from_str(cmd:&String) -> Option<u8> {
+    fn command_from_str(&self, cmd:&String) -> Option<u8> {
             let mut num_value:u8;
 
             let input:String;
 
-            match Self::match_alias(cmd.clone()) {
+            match self.match_alias(cmd.clone()) {
                 Some(n) => input = n,
                 None => input = cmd.clone()
             }
@@ -132,8 +132,6 @@ impl MyApp {
         });
         cfg.insert(0xFF, self.tempo_list.clone());
         serde_json::to_writer(file, &cfg).unwrap();
-
-        self.console(format!("Saved cfg"));
     }
     
     pub fn load_cfg(&mut self) {
@@ -156,9 +154,6 @@ impl MyApp {
         };
     
         let mut cfg:std::collections::HashMap<u8, String> = serde_json::from_reader(file).unwrap();
-
-        self.console(format!("Loaded cfg: {:?}", cfg));
-
         let mut res = IndexMap::new();
 
         self.tempo_list = cfg.remove(&0xFF).unwrap();
@@ -179,7 +174,7 @@ impl MyApp {
         let cfg = self.columns.lock().unwrap();
     
         for (pedal, input) in cfg.iter() {
-            let num_value = Self::command_from_str(input).unwrap();
+            let num_value = self.command_from_str(input).unwrap();
     
             output_buffer.push(*pedal);
             output_buffer.push(num_value);
@@ -191,15 +186,13 @@ impl MyApp {
         self.socket.as_ref().unwrap().send(&output_buffer).unwrap();
 
         drop(cfg);
-
-        self.console(format!("Sent cfg: {}", self.cfg_str()));
     }
 
     pub fn send_midi_command(&mut self) {
         let mut output_buffer:Vec<u8> = Vec::with_capacity((NUM_PEDALS*2 + 1) as usize);
         output_buffer.push(0x02);
 
-        let command = Self::command_from_str(&self.custom_cmd).unwrap();
+        let command = self.command_from_str(&self.custom_cmd).unwrap();
 
         output_buffer.push(command);
 
@@ -258,40 +251,34 @@ impl MyApp {
         *self.columns.lock().unwrap() = new_cfg;
     }
 
-    pub fn console(&mut self, s:String) {
-        self.console.push(s);
-    }
+    fn match_alias(&self, input:String) -> Option<String> {
 
-    pub fn get_last_line(&self) -> String {
-        let con = &self.console;
-
-        let l = con.len();
-        let lower = min(4, l);
-
-        let mut out = vec![];
-
-        for idx in l-lower..l {
-            out.push(con[idx].clone());
+        for (a,b) in &self.aliases {
+            if *a == input {
+                return Option::from(b.clone());
+            }
+            if *b == input {
+                return Option::from(a.clone());
+            }
         }
-        
-        out.join("\n")
-    }   
-
-    fn match_alias(input:String) -> Option<String> {
-        match input.as_str() {
-            "down" => Option::from("CC52".to_string()),
-            "up" =>  Option::from("CC53".to_string()),
-            "tun" => Option::from("CC68".to_string()),
-            "snext" => Option::from("CC127".to_string()),
-            "T" => Option::from("CC64".to_string()),
-            _ => Option::None
-        }
+        return Option::None;
     }
 
     fn tempo_bytes_from_str(input:&str) -> Vec<u8> {
         let f_value:f32 = input.parse().unwrap();
         let mut res = vec![];
         f_value.to_le_bytes().iter().for_each(|b| res.push(*b));
+
+        res
+    }
+
+    pub fn get_aliases() -> HashMap<String, String> {
+        let mut res = HashMap::new();
+        res.insert("down".into(), "CC52".into());
+        res.insert("up".into(), "CC53".into());
+        res.insert("tun".into(), "CC68".into());
+        res.insert("tnext".into(), "CC127".into());
+        res.insert("T".into(), "CC64".into());
 
         res
     }

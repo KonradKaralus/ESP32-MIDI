@@ -11,7 +11,7 @@ const TEST:bool = true;
 
 const ADDRESS:&str = "78:21:84:8c:71:2a";
 
-use std::{iter, sync::{Arc, Mutex}};
+use std::{collections::HashMap, iter, sync::{Arc, Mutex}};
 
 use indexmap::IndexMap;
 
@@ -48,11 +48,11 @@ fn main() -> Result<(), eframe::Error> {
 struct MyApp {
     columns: Arc<Mutex<IndexMap<u8, String>>>,
     socket: Option<BtStream>,
-    console: Vec<String>,
     custom_cmd:String,
     custom_pedal_nr:String,
     tempo:String,
-    tempo_list:String
+    tempo_list:String,
+    aliases:HashMap<String,String>
 }
 
 impl Default for MyApp {
@@ -67,17 +67,15 @@ impl Default for MyApp {
         for i in 1..=NUM_PEDALS {
             map.insert(i, v[(i-1) as usize].to_string());
         }
-        let mut res = Self {
+        let res = Self {
             columns: Arc::new(Mutex::new(map)),
             socket: Option::None,
-            console:vec!["init".to_string()],
             custom_cmd:"".to_string(),
             custom_pedal_nr:"".to_string(),
             tempo:"".to_string(),
-            tempo_list:"".to_string()
+            tempo_list:"".to_string(),
+            aliases: MyApp::get_aliases()
         };
-
-        res.console("Started without BT".to_string());
         res
     }
 }
@@ -114,17 +112,14 @@ impl MyApp {
         let mut res = Self {
             columns: Arc::new(Mutex::new(loaded_config)),
             socket: Option::from(socket),
-            console:vec!["init".to_string()],
             custom_cmd:"".to_string(),
             custom_pedal_nr:"".to_string(),
             tempo:"".to_string(),
-            tempo_list:"".to_string()
+            tempo_list:"".to_string(),
+            aliases: MyApp::get_aliases()
         };
 
-        res.console("Started with BT".to_string());
-        res.req_cfg();
-        res.console("Started with BT".to_string());
-        
+        res.req_cfg();        
         res
     }
 }
