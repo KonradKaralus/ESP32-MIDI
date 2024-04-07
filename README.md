@@ -1,13 +1,13 @@
-esp-midi
+# MIDI-Stompbox for Line6 HX-Stomp using ESP32
 
+## Features
 
-BT commands: 
+- MIDI commands (PC and CC) assignable for each footswitch
+- Tempochanges and a list of tempos that can be used to set a predefined tempos on the go
+- Desktop GUI to change configuration via Bluetooth
+- Save & load of configuration files
 
-*0x00 -> config-request
-*0x01 -> new setup (end ist set by 0x00)
-*0x02 -> send midi signal
-*0x03 -> hit pedal
-*0x04 -> change speed -> 1-4 f32 of tempo in LE
-*0x05 -> new tempolist: 4 bytes each tempo f32, 5x 0x00 is end, max size: 32 tempos -> 4*32 + 6 = 134 buffer  
+## Contents
 
-//0xFF in send_config and config store currently reserved for next_setlist
+- [ESP32 platformio project](platform_io/ESP.md)
+- [Desktop-GUI-App](esp-front-egui/GUI.md)
