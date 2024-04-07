@@ -135,8 +135,7 @@ void setup() {
   for(int i = 0; i<AMT_PEDALS; i++) {
     pin_state ps;
     ps.signal = 0;
-    // ps.state = false;
-    ps.state = (bool)digitalRead(pin_routings[pins[i]]);
+    ps.state = (bool)digitalRead(pins[i]);
     states[i] = ps;
   }
 
