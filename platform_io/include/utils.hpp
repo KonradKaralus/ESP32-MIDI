@@ -4,12 +4,11 @@
 #include "unordered_map"
 #include "BluetoothSerial.h"
 #include "vector"
-#include <Adafruit_NeoPixel.h>
+#include "Adafruit_NeoPixel.h"
 #include "pthread.h"
 
 #define AMT_PEDALS 6
 #define CC_DEFAULT 0
-#define DEBUG true
 #define TOLERANCE_CAP 100
 #define PIN 4
 #define LED_COUNT 4
@@ -17,22 +16,24 @@
 
 extern Adafruit_NeoPixel leds;
 
+enum OutputType { midi_cmd, tempo_list_cmd };
+
+
 struct pin_state {
   bool state;
   int signal;
 };
 
-enum OutputType { midi_cmd, tempo_list_cmd };
+struct output {
+  OutputType type;
+  u_int8_t command;
+};
+
 enum LED { RED, GREEN, BLUE };
 
 extern std::array<u_int8_t, 3> color;
 extern double brightness; //clamped 0->1
 extern bool LED_down;
-
-struct output {
-  OutputType type;
-  u_int8_t command;
-};
 
 extern std::unordered_map<u_int8_t, output> routings;
 
@@ -71,5 +72,54 @@ void clear_tempo_list();
 void tempo_list_next();
 
 void set_LED(LED value);
-
 void cycle_LED();
+
+class LED_Controller {
+  public:
+    LED_Controller();
+    void set_LED(LED value);
+    void cycle_LED();
+  private:
+    Adafruit_NeoPixel leds;
+    std::array<u_int8_t, 3> color;
+    double brightness; //clamped 0->1
+    bool LED_down;
+};
+
+class MIDI_Controller {
+  public:
+    MIDI_Controller();
+    void on_bt_connect();
+    void on_bt_disconnect();
+    void on_bt_recv();
+  private:
+    void first_config();
+    void load_config();
+    void send_config();
+    void sendOutput(u_int8_t msg);
+    void update_config();
+    void send_midi_signal();
+    void process_input();
+    bool check_signal(u_int8_t pedal_nr, bool input);
+    void pedal();
+    void send_tempo(float tempo);
+    void *thread_tempo(void *tempo);
+    void send_tempo_change();
+    void update_tempo_list();
+    void clear_tempo_list();
+    void tempo_list_next();
+
+    LED_Controller led_controller;
+    std::unordered_map<u_int8_t, output> routings;
+    std::vector<float> tempo_list;
+    pthread_t tempo_thread;
+    Preferences cfg;
+    BluetoothSerial SerialBT;
+    pin_state states[AMT_PEDALS];
+    u_int8_t pins[AMT_PEDALS];
+    std::unordered_map<u_int8_t, u_int8_t> pin_routings;
+    u_int8_t bt_input_buffer[134];
+    u_int8_t bt_output_buffer[134];
+    bool cfg_updated;
+    unsigned int tempo_list_idx;
+};

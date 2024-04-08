@@ -1,10 +1,4 @@
-#include "MIDI.h"
-#include "Preferences.h"
-#include "string"
-#include "unordered_map"
-#include "vector"
-#include "BluetoothSerial.h"
-#include "utils.h"
+#include "utils.hpp"
 
 
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial2, MIDI);
@@ -37,16 +31,10 @@ bool LED_down = false;
 
 void sendOutput(u_int8_t msg) {
     uint8_t type = msg & 0x80;
-
     msg = msg & 0x7F;
-    
-    #ifdef DEBUG
-      Serial.print(msg);
-    #endif
 
     if(type == 0) {
         MIDI.sendProgramChange(msg, 1);
-        Serial.println("PC");
     } else {
         MIDI.sendControlChange(midi::DataByte(msg), CC_DEFAULT, 1);
     }
@@ -72,11 +60,6 @@ void send_tempo(float tempo) {
 }
 
 void tempo_list_next() {
-  #ifdef DEBUG
-    Serial.println("tempo list next");
-    Serial.println(tempo_list_idx+1);
-    Serial.println(tempo_list.size());
-  #endif
   if(tempo_list_idx >= tempo_list.size()) {
     return;
   }
@@ -87,9 +70,6 @@ void tempo_list_next() {
 
 //currently not in use
 void tempo_list_prev() {
-  #ifdef DEBUG
-    Serial.println("tempo list next");
-  #endif
   if(tempo_list_idx <= tempo_list.size()) {
     return;
   }
@@ -118,7 +98,7 @@ void setup() {
 
   bool init = cfg.isKey("init");
 
-  if(!init || DEBUG) {
+  if(!init) {
       cfg.end();
       first_config();
   }
@@ -139,7 +119,7 @@ void setup() {
     states[i] = ps;
   }
 
-  SerialBT.begin("ESP");
+  SerialBT.begin("MIDI-Controller");
   SerialBT.setPin("1");
   SerialBT.register_callback(BT_EventHandler);
 
@@ -164,7 +144,6 @@ void loop() {
     pedal_nr = pin_routings[pin_nr];
 
     if(check_signal(pedal_nr, (bool)digitalRead(pin_nr))) {
-      Serial.print("type:"); Serial.println(routings[pedal_nr].type);
       set_LED(LED::GREEN);
 
 
@@ -183,11 +162,5 @@ void loop() {
     if(cfg_updated) {
       load_config();
       cfg_updated = false;
-
-      #ifdef DEBUG
-        Serial.print("new cfg applied");
-        Serial.print("cfg:"); Serial.println(routings[1].type);
-
-      #endif
     }
 }
