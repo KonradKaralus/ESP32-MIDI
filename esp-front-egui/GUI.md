@@ -1,3 +1,9 @@
+## Command Syntax
+- Footswitch and single MIDI command: PCvalue or CCvalue, i.e. PC120 or CC1
+- Single pedal press: Pedal number, i.e. 5
+- Single tempo change: tempo (decimal), i.e. 80.5
+- Tempo list: list of single tempos, separated by ","  i.e. 120.1,90,100.123
+
 ## Supported platforms
 The GUI application only supports Windows
 
