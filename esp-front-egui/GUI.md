@@ -1,3 +1,6 @@
+## Supported platforms
+The GUI application only supports Windows
+
 ## Bluetooth commands:
 First byte defines the type of the command
 ```
