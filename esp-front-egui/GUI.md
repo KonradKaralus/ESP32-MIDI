@@ -20,4 +20,7 @@ First byte defines the type of the command
 Due to the dynamic length of the tempolist command, the current length of the Bluetooth buffer on the ESP32 is 134 bytes (4\*32 + 6), which allows for a maximum of 32 tempos in the tempo list  
 
 >[!IMPORTANT]
+> Note that Preset-Up (up) and Preset-Down (down) will only work if you set your HX-Device to use FS-4 and FS-5 to act as Preset-Up and Preset-Down respectively.
+
+>[!IMPORTANT]
 > 0xFF is currently reserved for the command, that iterates the tempolist, thus PC127 is not a valid command
