@@ -1,3 +1,6 @@
+>[!IMPORTANT]
+> Be sure to enter your ESP's BT address in 'main.rs'
+
 ## Command Syntax
 - Footswitch and single MIDI command: PCvalue or CCvalue, i.e. PC120 or CC1
 - Single pedal press: Pedal number, i.e. 5
