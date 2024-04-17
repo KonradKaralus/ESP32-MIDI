@@ -3,14 +3,14 @@ use std::{collections::HashMap, fs::File};
 use indexmap::IndexMap;
 use native_dialog::FileDialog;
 
-use crate::{MyApp, NUM_PEDALS, TEST};
+use crate::{MyApp, NUM_PEDALS};
 
 impl MyApp {
-    pub fn print_current_cfg(&mut self) {
+    pub fn _print_current_cfg(&mut self) {
         println!("current cfg: {:?}", *self.columns.lock().unwrap());
     }
 
-    pub fn cfg_str(&self) -> String {
+    pub fn _cfg_str(&self) -> String {
         format!("current cfg: {:?}", *self.columns.lock().unwrap())
     }
     
@@ -53,9 +53,6 @@ impl MyApp {
             if index as u8 >= NUM_PEDALS*2 {
                 break;
             }
-        }
-        if TEST {
-            println!("loaded cfg: {:?}", loaded_config);
         }
         drop(loaded_config);
         self.sort_cfg();
@@ -180,9 +177,7 @@ impl MyApp {
             output_buffer.push(num_value);
         }
         output_buffer.push(0x00);
-        if TEST {
-            println!("sending {:?}", output_buffer);
-        }
+
         self.socket.as_ref().unwrap().send(&output_buffer).unwrap();
 
         drop(cfg);

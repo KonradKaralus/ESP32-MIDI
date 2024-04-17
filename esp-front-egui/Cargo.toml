@@ -1,5 +1,5 @@
 [package]
-name = "esp-front-egui"
+name = "ESP-Stomp-Controller"
 version = "0.1.0"
 edition = "2021"
 build = "src/build.rs"

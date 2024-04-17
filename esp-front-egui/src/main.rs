@@ -1,22 +1,14 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
-
-
 pub mod utils;
 
-const LAPTOP:bool = true;
-
-const NUM_PEDALS:u8 = 6; 
-
-const TEST:bool = true; 
+use std::{collections::HashMap, iter, sync::{Arc, Mutex}};
+use indexmap::IndexMap;
+use eframe::egui::{self, vec2, Button, Label, Pos2, Style, TextEdit};
+use io_bluetooth::bt::{self, BtStream};
 
 const ADDRESS:&str = "78:21:84:8c:71:2a";
 
-use std::{collections::HashMap, iter, sync::{Arc, Mutex}};
-
-use indexmap::IndexMap;
-
-use eframe::egui::{self, vec2, Button, Label, Pos2, Style, TextEdit};
-use io_bluetooth::bt::{self, BtStream};
+const NUM_PEDALS:u8 = 6; 
 
 fn main() -> Result<(), eframe::Error> {
 
@@ -38,7 +30,6 @@ fn main() -> Result<(), eframe::Error> {
                 ..Style::default()
             };
             _cc.egui_ctx.set_style(style);
-            // This gives us image support:
             _cc.egui_ctx.set_pixels_per_point(2.5);
             Box::<MyApp>::default()
         }),
@@ -57,31 +48,6 @@ struct MyApp {
 
 impl Default for MyApp {
     fn default() -> Self {
-
-        if LAPTOP {
-            return Self::with_connection();
-        }
-
-        let v = vec!["CC1","PC2","CC3","PC5","CC5","PC4",];
-        let mut map:IndexMap<u8, String> = IndexMap::with_capacity(NUM_PEDALS as usize); 
-        for i in 1..=NUM_PEDALS {
-            map.insert(i, v[(i-1) as usize].to_string());
-        }
-        let res = Self {
-            columns: Arc::new(Mutex::new(map)),
-            socket: Option::None,
-            custom_cmd:"".to_string(),
-            custom_pedal_nr:"".to_string(),
-            tempo:"".to_string(),
-            tempo_list:"".to_string(),
-            aliases: MyApp::get_aliases()
-        };
-        res
-    }
-}
-
-impl MyApp {
-    fn with_connection() -> Self {
         let loaded_config: IndexMap<u8,String> = IndexMap::with_capacity(NUM_PEDALS as usize); 
 
         let devices = bt::discover_devices().unwrap();
