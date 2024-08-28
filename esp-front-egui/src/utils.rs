@@ -42,7 +42,13 @@ pub fn try_connect(connection: Connection) {
     connection.lock().status = "Connecting".to_string();
 
     for i in 0..CONNECTION_ATTEMPTS {
-        let mut devices = bt::discover_devices().unwrap();
+        let mut devices = match bt::discover_devices() {
+            Ok(d) => d,
+            Err(_) => {
+                connection.lock().status = "Bluetooth not available!".to_string();
+                return;
+            }
+        };
 
         devices = devices
             .into_iter()

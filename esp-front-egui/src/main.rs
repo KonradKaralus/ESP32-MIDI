@@ -1,7 +1,9 @@
 // #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 pub mod utils;
+mod icon;
 
-use eframe::egui::{self, vec2, Label, Pos2, Style, TextEdit};
+use eframe::egui::{self, vec2, IconData, Label, Pos2, Style, TextEdit};
+use icon::ARR;
 use indexmap::IndexMap;
 use std::{
     collections::HashMap,
@@ -17,13 +19,16 @@ const NUM_PEDALS: u8 = 6;
 
 fn main() -> Result<(), eframe::Error> {
     env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
+
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([1000.0, 690.0])
             .with_resizable(false)
-            .with_position(Pos2::new(100f32, 100f32)),
+            .with_position(Pos2::new(100f32, 100f32))
+            .with_icon(IconData{ rgba: ARR.to_vec(), width: 256, height: 256 }),
         ..Default::default()
     };
+
     eframe::run_native(
         "My egui App",
         options,
