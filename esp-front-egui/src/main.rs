@@ -1,8 +1,8 @@
 // #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
-pub mod utils;
 mod icon;
+pub mod utils;
 
-use eframe::egui::{self, vec2, IconData, Label, Pos2, Style, TextEdit};
+use eframe::egui::{self, vec2, IconData, Label, Pos2, RadioButton, Style, TextEdit};
 use icon::ARR;
 use indexmap::IndexMap;
 use std::{
@@ -25,7 +25,11 @@ fn main() -> Result<(), eframe::Error> {
             .with_inner_size([1000.0, 690.0])
             .with_resizable(false)
             .with_position(Pos2::new(100f32, 100f32))
-            .with_icon(IconData{ rgba: ARR.to_vec(), width: 256, height: 256 }),
+            .with_icon(IconData {
+                rgba: ARR.to_vec(),
+                width: 256,
+                height: 256,
+            }),
         ..Default::default()
     };
 
@@ -83,12 +87,11 @@ impl eframe::App for MyApp {
         ctx.request_repaint_after(Duration::from_millis(250));
         egui::CentralPanel::default().show(ctx, |ui| {
             if self.is_newly_connected() {
-                println!("req");
                 self.req_cfg();
             }
 
             ui.horizontal(|ui| {
-                ui.label(self.get_connection_status());
+                ui.add(RadioButton::new(self.is_connected(), ""));
                 if !self.is_connected() {
                     if ui.button("Connect").clicked() {
                         let c2 = self.connection.clone();
@@ -97,6 +100,7 @@ impl eframe::App for MyApp {
                         });
                     }
                 }
+                ui.label(self.get_connection_status());
             });
 
             ui.columns(2, |columns| {
