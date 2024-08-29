@@ -69,16 +69,13 @@ impl Default for MyApp {
 
         let aliases = MyApp::get_aliases();
 
-        let res = Self {
+        Self {
             columns: Arc::new(Mutex::new(loaded_config)),
             _tempo: "".to_string(),
             aliases: aliases.0,
             aliases_rev: aliases.1,
             connection: c,
-        };
-
-        // res.req_cfg();
-        res
+        }
     }
 }
 

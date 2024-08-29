@@ -50,10 +50,7 @@ pub fn try_connect(connection: Connection) {
             }
         };
 
-        devices = devices
-            .into_iter()
-            .filter(|d| *d.to_string() == ADDRESS.to_string())
-            .collect();
+        devices.retain(|d| *d.to_string() == *ADDRESS);
 
         if devices.len() == 1 {
             let socket =
@@ -159,12 +156,11 @@ impl MyApp {
             _ => {}
         }
 
-        input = input & 0x7F;
+        input &= 0x7F;
         type_st += &(input as i32).to_string();
 
-        match self.match_alias_rev(&type_st) {
-            Some(s) => type_st = s.clone(),
-            _ => {}
+        if let Some(s) = self.match_alias_rev(&type_st) {
+            type_st = s.clone()
         }
 
         type_st
@@ -173,12 +169,10 @@ impl MyApp {
     fn command_from_str(&self, cmd: &String) -> Option<u8> {
         let mut num_value: u8;
 
-        let input: String;
-
-        match self.match_alias(&cmd) {
-            Some(n) => input = n.clone(),
-            None => input = cmd.clone(),
-        }
+        let input: String = match self.match_alias(cmd) {
+            Some(n) => n.clone(),
+            None => cmd.clone(),
+        };
 
         if input.contains("CC") {
             let value = input.replace("CC", "");
@@ -201,12 +195,12 @@ impl MyApp {
             .show_save_single_file()
             .unwrap();
 
-        let path;
+        // let path;
 
-        match input {
+        let path = match input {
             None => return,
-            Some(p) => path = p,
-        }
+            Some(p) => p,
+        };
 
         let file = match File::create(&path) {
             Err(why) => panic!("couldn't open {}", why),
@@ -228,12 +222,10 @@ impl MyApp {
             .show_open_single_file()
             .unwrap();
 
-        let path;
-
-        match input {
+        let path = match input {
             None => return,
-            Some(p) => path = p,
-        }
+            Some(p) => p,
+        };
 
         let file = match File::open(&path) {
             Err(why) => panic!("couldn't open {}", why),
