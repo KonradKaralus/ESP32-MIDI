@@ -1,7 +1,9 @@
 // #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
+mod connection;
 mod icon;
-pub mod utils;
+mod utils;
 
+use connection::{check_connection_status, get_connection, Connection};
 use eframe::egui::{self, vec2, IconData, Label, Pos2, RadioButton, Style, TextEdit};
 use icon::ARR;
 use indexmap::IndexMap;
@@ -11,7 +13,6 @@ use std::{
     thread,
     time::Duration,
 };
-use utils::{get_connection, try_connect, Connection};
 
 pub const ADDRESS: &str = "78:21:84:8c:71:2a";
 
@@ -64,7 +65,7 @@ impl Default for MyApp {
         let c2 = c.clone();
 
         thread::spawn(|| {
-            try_connect(c2);
+            check_connection_status(c2);
         });
 
         let aliases = MyApp::get_aliases();
@@ -91,10 +92,7 @@ impl eframe::App for MyApp {
                 ui.add(RadioButton::new(self.is_connected(), ""));
                 if !self.is_connected() {
                     if ui.button("Connect").clicked() {
-                        let c2 = self.connection.clone();
-                        thread::spawn(|| {
-                            try_connect(c2);
-                        });
+                        self.connection.lock().try_connect = true;
                     }
                 }
                 ui.label(self.get_connection_status());
