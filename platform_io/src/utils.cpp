@@ -1,69 +1,86 @@
 #include "utils.hpp"
 
-void clear_tempo_list() {
+void clear_tempo_list()
+{
   tempo_list.clear();
 }
 
-void first_config() {
-    cfg.begin("config",false);
+void first_config()
+{
+  cfg.begin("config", false);
 
-    cfg.putBool("init", true);
-    for(u_int8_t i=1; i<=AMT_PEDALS;i++) {
-        cfg.putUChar(std::to_string(i).c_str(), 100+i);
-    }
-    cfg.putUChar("tempo_size", 0);
+  cfg.putBool("init", true);
+  for (u_int8_t i = 1; i <= AMT_PEDALS; i++)
+  {
+    cfg.putUChar(std::to_string(i).c_str(), 100 + i);
+  }
+  cfg.putUChar("tempo_size", 0);
 
-    cfg.end();
+  cfg.end();
 }
 
-void load_config() {
-    cfg.begin("config", true);
-    for(u_int8_t i=1; i<=AMT_PEDALS;i++) {
-      u_int8_t target = cfg.getUChar(std::to_string(i).c_str(), 0);
-      if(target == 0XFF) {
-        routings[i] = {OutputType::tempo_list_cmd, 0};
-      } else {
+void load_config()
+{
+  cfg.begin("config", true);
+  for (u_int8_t i = 1; i <= AMT_PEDALS; i++)
+  {
+    u_int8_t target = cfg.getUChar(std::to_string(i).c_str(), 0);
+    if (target == 0XFF)
+    {
+      routings[i] = {OutputType::tempo_list_cmd, 0};
+    }
+    else
+    {
       routings[i] = {OutputType::midi_cmd, target};
-      }
     }
-    
-    tempo_list.clear();
-    for(int i = 0; i<int(cfg.getUChar("tempo_size")); i++) {
-      float tempo = cfg.getFloat(("T"+std::to_string(i)).c_str());
-      tempo_list.push_back(tempo);
-    }
-    cfg.end();
+  }
+
+  tempo_list.clear();
+  for (int i = 0; i < int(cfg.getUChar("tempo_size")); i++)
+  {
+    float tempo = cfg.getFloat(("T" + std::to_string(i)).c_str());
+    tempo_list.push_back(tempo);
+  }
+  cfg.end();
 }
 
-void send_config() {
+void send_config()
+{
   int index = 0;
 
-  for(auto& it:routings) {
+  for (auto &it : routings)
+  {
     bt_output_buffer[index] = it.first;
-    if(it.second.type == OutputType::tempo_list_cmd) {
-      bt_output_buffer[index+1] = 0xFF;
-    } else {
-      bt_output_buffer[index+1] = it.second.command;
+    if (it.second.type == OutputType::tempo_list_cmd)
+    {
+      bt_output_buffer[index + 1] = 0xFF;
     }
-    index+=2;
+    else
+    {
+      bt_output_buffer[index + 1] = it.second.command;
+    }
+    index += 2;
   }
-  SerialBT.write(bt_output_buffer, 2*AMT_PEDALS+1);
+  SerialBT.write(bt_output_buffer, 2 * AMT_PEDALS + 1);
 }
 
-void update_config() {
+void update_config()
+{
   int index = 1;
 
-  cfg.begin("config",false);
+  cfg.begin("config", false);
 
   u_int8_t pedal;
   u_int8_t value;
 
-  while(true) {
-    if(bt_input_buffer[index] == 0x00) {
+  while (true)
+  {
+    if (bt_input_buffer[index] == 0x00)
+    {
       break;
-    } 
+    }
     pedal = bt_input_buffer[index];
-    value = bt_input_buffer[index+1];
+    value = bt_input_buffer[index + 1];
 
     cfg.putUChar(std::to_string(pedal).c_str(), value);
 
@@ -74,38 +91,42 @@ void update_config() {
   cfg_updated = true;
 }
 
-void update_tempo_list() {
-  cfg.begin("config",false);
+void update_tempo_list()
+{
+  cfg.begin("config", false);
   int tempolist_idx = 0;
   int idx = 1;
-  while(true) {
+  while (true)
+  {
     float f;
-    uint8_t *f_ptr = (uint8_t *) &f;
+    uint8_t *f_ptr = (uint8_t *)&f;
 
-    f_ptr[3] = bt_input_buffer[idx+3];
-    f_ptr[2] = bt_input_buffer[idx+2];
-    f_ptr[1] = bt_input_buffer[idx+1];
+    f_ptr[3] = bt_input_buffer[idx + 3];
+    f_ptr[2] = bt_input_buffer[idx + 2];
+    f_ptr[1] = bt_input_buffer[idx + 1];
     f_ptr[0] = bt_input_buffer[idx];
 
-    cfg.putFloat(("T"+std::to_string(tempolist_idx)).c_str(), f);
-    idx+=4;
-    if(bt_input_buffer[idx] == 0x00 && bt_input_buffer[idx+1] == 0x00 && bt_input_buffer[idx+2] == 0x00 && bt_input_buffer[idx+3] == 0x00 && bt_input_buffer[idx+4] == 0x00) {
+    cfg.putFloat(("T" + std::to_string(tempolist_idx)).c_str(), f);
+    idx += 4;
+    if (bt_input_buffer[idx] == 0x00 && bt_input_buffer[idx + 1] == 0x00 && bt_input_buffer[idx + 2] == 0x00 && bt_input_buffer[idx + 3] == 0x00 && bt_input_buffer[idx + 4] == 0x00)
+    {
       break;
     }
     tempolist_idx++;
   }
 
-  cfg.putUChar("tempo_size", tempolist_idx+1);
+  cfg.putUChar("tempo_size", tempolist_idx + 1);
 
   tempo_list_idx = 0;
   cfg.end();
   cfg_updated = true;
 }
 
-void send_tempo_change() {
+void send_tempo_change()
+{
   float f;
 
-  uint8_t *f_ptr = (uint8_t *) &f;
+  uint8_t *f_ptr = (uint8_t *)&f;
 
   f_ptr[3] = bt_input_buffer[4];
   f_ptr[2] = bt_input_buffer[3];
@@ -116,58 +137,88 @@ void send_tempo_change() {
   send_tempo(tempo);
 }
 
-void send_midi_signal() {
-  if(bt_input_buffer[1]==0xFF) {
+void send_midi_signal()
+{
+  if (bt_input_buffer[1] == 0xFF)
+  {
     tempo_list_next();
-  } else {
+  }
+  else
+  {
     sendOutput(bt_input_buffer[1]);
   }
 }
 
-void pedal() {
-  if(bt_input_buffer[1] == 0x00) {
+void pedal()
+{
+  if (bt_input_buffer[1] == 0x00)
+  {
     return;
   }
   sendOutput(routings[bt_input_buffer[1]].command);
 }
 
-void process_input() {
+void heartbeat_response()
+{
+  // int index = 0;
+
+  // for(auto& it:routings) {
+  //   bt_output_buffer[index] = it.first;
+  //   if(it.second.type == OutputType::tempo_list_cmd) {
+  //     bt_output_buffer[index+1] = 0xFF;
+  //   } else {
+  //     bt_output_buffer[index+1] = it.second.command;
+  //   }
+  //   index+=2;
+  // }
+  bt_output_buffer[0] = 2;
+  SerialBT.write(bt_output_buffer, 1);
+}
+
+void process_input()
+{
   u_int8_t first = bt_input_buffer[0];
 
-  switch (first) {
-    case 0:
-      send_config();
-      break;
-    case 1:
-      update_config();
-      break;
-    case 2:
-      send_midi_signal();
-      break;
-    case 3:
-      pedal();
-      break;
-    case 4:
-      send_tempo_change();
-      break;
-    case 5:
-      update_tempo_list();
-
+  switch (first)
+  {
+  case 0:
+    send_config();
+    break;
+  case 1:
+    update_config();
+    break;
+  case 2:
+    heartbeat_response();
+    break;
+    // case 3:
+    //   pedal();
+    //   break;
+    // case 4:
+    //   send_tempo_change();
+    //   break;
+    // case 5:
+    //   update_tempo_list();
   }
 }
 
-void BT_EventHandler(esp_spp_cb_event_t event, esp_spp_cb_param_t *param) {
-  if (event == ESP_SPP_START_EVT) {
+void BT_EventHandler(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
+{
+  if (event == ESP_SPP_START_EVT)
+  {
   }
-  else if (event == ESP_SPP_SRV_OPEN_EVT ) {
+  else if (event == ESP_SPP_SRV_OPEN_EVT)
+  {
     set_LED(LED::BLUE);
   }
-  else if (event == ESP_SPP_CLOSE_EVT  ) {
+  else if (event == ESP_SPP_CLOSE_EVT)
+  {
     set_LED(LED::RED);
   }
-  else if (event == ESP_SPP_DATA_IND_EVT ) {
+  else if (event == ESP_SPP_DATA_IND_EVT)
+  {
     int index = 0;
-    while (SerialBT.available()) {
+    while (SerialBT.available())
+    {
       int incoming = SerialBT.read();
       bt_input_buffer[index] = incoming;
       index++;
@@ -179,16 +230,19 @@ void BT_EventHandler(esp_spp_cb_event_t event, esp_spp_cb_param_t *param) {
   }
 }
 
-bool check_signal(u_int8_t pedal_nr, bool input) {
-  pin_state* current = &states[pedal_nr - 1];
+bool check_signal(u_int8_t pedal_nr, bool input)
+{
+  pin_state *current = &states[pedal_nr - 1];
 
-  if(input == current->state) {
+  if (input == current->state)
+  {
     return false;
   }
 
   current->signal++;
 
-  if(current->signal > TOLERANCE_CAP) {
+  if (current->signal > TOLERANCE_CAP)
+  {
     current->state = input;
     current->signal = 0;
     return true;
@@ -197,37 +251,48 @@ bool check_signal(u_int8_t pedal_nr, bool input) {
   return false;
 }
 
-void set_LED(LED value) {
-  switch (value) {
-    //R<->G
-    case LED::RED:
-      color = {0x00, 0xFF, 0x00};
-      break;
-    case LED::GREEN:
-      color = {217, 41, 30};
-      break;
-    case LED::BLUE:
-      color = {0, 31, 0xFF};
-      break;
+void set_LED(LED value)
+{
+  switch (value)
+  {
+  // R<->G
+  case LED::RED:
+    color = {0x00, 0xFF, 0x00};
+    break;
+  case LED::GREEN:
+    color = {217, 41, 30};
+    break;
+  case LED::BLUE:
+    color = {0, 31, 0xFF};
+    break;
   }
-} 
+}
 
-void cycle_LED() {
-  if(!color.empty()) {
-    for(u_int16_t i = 0; i<LED_COUNT;i++) {
-      leds.setPixelColor(i, brightness*color[0], brightness*color[1], brightness*color[2]);
+void cycle_LED()
+{
+  if (!color.empty())
+  {
+    for (u_int16_t i = 0; i < LED_COUNT; i++)
+    {
+      leds.setPixelColor(i, brightness * color[0], brightness * color[1], brightness * color[2]);
     }
 
     leds.show();
-    if(brightness >= 0.98) {
+    if (brightness >= 0.98)
+    {
       LED_down = true;
-    } else if(brightness <= 0.3) {
+    }
+    else if (brightness <= 0.3)
+    {
       LED_down = false;
     }
 
-    if(LED_down) {
+    if (LED_down)
+    {
       brightness -= BRIGHTNESS_STEP;
-    } else {
+    }
+    else
+    {
       brightness += BRIGHTNESS_STEP;
     }
   }
