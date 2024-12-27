@@ -3,7 +3,7 @@ use std::{collections::HashMap, fs::File};
 use indexmap::IndexMap;
 use native_dialog::FileDialog;
 
-use crate::{MyApp, NUM_PEDALS};
+use crate::{command::Command, MyApp, CC_SEP, NUM_PEDALS};
 
 const ALIASES: [(&str, &str); 4] = [
     ("Down", "CC52"),
@@ -42,8 +42,8 @@ impl MyApp {
         if o_cfg.is_none() {
             return;
         }
-        let mut cfg = o_cfg.unwrap();
-        cfg.pop();
+        let cfg = o_cfg.unwrap();
+        // cfg.pop();
 
         let mut index = 0;
 
@@ -51,7 +51,8 @@ impl MyApp {
 
         loop {
             let ped = cfg[index];
-            let value = self.cfg_str_from_value(cfg[index + 1]);
+            let cmd: Command = *bytemuck::from_bytes(&cfg[index + 1..index + size_of::<Command>()]);
+            let value = self.cfg_str_from_value(cmd);
 
             if value.is_empty() {
                 panic!("was not CC or PC")
@@ -60,7 +61,7 @@ impl MyApp {
             loaded_config.insert(ped, value);
 
             index += 2;
-            if index as u8 >= NUM_PEDALS * 2 {
+            if index >= NUM_PEDALS * 2 {
                 break;
             }
         }
@@ -69,34 +70,34 @@ impl MyApp {
     }
 
     pub fn send_cfg(&mut self) {
-        let mut output_buffer: Vec<u8> = Vec::with_capacity((NUM_PEDALS * 2 + 1) as usize);
+        let signal_size = size_of::<Command>();
 
+        let mut output_buffer: Vec<u8> =
+            Vec::with_capacity(NUM_PEDALS + NUM_PEDALS * signal_size + 1);
         let cfg = self.columns.lock().unwrap();
 
         for (pedal, input) in cfg.iter() {
             let num_value = self.command_from_str(input).unwrap();
 
             output_buffer.push(*pedal);
-            output_buffer.push(num_value);
+            output_buffer.extend_from_slice(num_value.as_bytes());
         }
-        output_buffer.push(0x00);
+        drop(cfg);
 
         self.connection.lock().send_cfg(output_buffer);
     }
 
-    fn cfg_str_from_value(&self, value: u8) -> String {
+    fn cfg_str_from_value(&self, value: Command) -> String {
         let mut type_st = "".to_string();
-        let mut input = value;
+        let input = value;
 
-        let msg_type = input & 0x80;
-        match msg_type {
-            0 => type_st += "PC",
-            128 => type_st += "CC",
-            _ => {}
-        }
+        type_st += input.type_str();
 
-        input &= 0x7F;
-        type_st += &(input as i32).to_string();
+        // input &= 0x7F;
+        // type_st += &(input as i32).to_string();
+
+        type_st += &input.value_str();
+        type_st += &input.option_str();
 
         if let Some(s) = self.match_alias_rev(&type_st) {
             type_st = s.clone()
@@ -105,26 +106,56 @@ impl MyApp {
         type_st
     }
 
-    fn command_from_str(&self, cmd: &String) -> Option<u8> {
-        let mut num_value: u8;
-
+    // PC<num> or CC<num>|<ac>,<deac>
+    fn command_from_str(&self, cmd: &String) -> Option<Command> {
         let input: String = match self.match_alias(cmd) {
             Some(n) => n.clone(),
             None => cmd.clone(),
         };
 
         if input.contains("CC") {
-            let value = input.replace("CC", "");
-            num_value = value.parse::<u8>().unwrap();
-            num_value += 128; //set first bit
+            let stripped = input.replace("CC", "");
+
+            if !stripped.contains(CC_SEP) {
+                let o_value = stripped.parse();
+                if o_value.is_err() {
+                    return None;
+                }
+                let value: u8 = o_value.unwrap();
+
+                return Some(Command::new_cc_simple(value));
+            }
+
+            let split: Vec<&str> = stripped.split("|").collect();
+            if split.len() != 2 {
+                return None;
+            }
+
+            let o_value = split[0].parse();
+            if o_value.is_err() {
+                return None;
+            }
+            let value: u8 = o_value.unwrap();
+
+            let o_opts: Vec<Result<u8, _>> = split[1].split(",").map(|n| n.parse::<u8>()).collect();
+            if o_opts.iter().any(|n| n.is_err()) || o_opts.len() != 2 {
+                return None;
+            }
+            let on_activate = *o_opts[0].as_ref().unwrap();
+            let on_deactivate = *o_opts[1].as_ref().unwrap();
+
+            return Some(Command::new_cc(value, on_activate, on_deactivate));
         } else if input.contains("PC") {
-            let value = input.replace("PC", "");
-            num_value = value.parse::<u8>().unwrap();
-        } else {
-            return Option::None;
+            let o_value = input.replace("PC", "").parse();
+            if o_value.is_err() {
+                return None;
+            }
+            let value: u8 = o_value.unwrap();
+
+            return Some(Command::new_pc(value));
         }
 
-        Option::from(num_value)
+        None
     }
 
     pub fn serialize_cfg(&mut self) {

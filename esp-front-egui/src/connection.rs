@@ -3,7 +3,7 @@ use std::{iter, sync::Arc, thread::sleep, time::Duration};
 use eframe::egui::mutex::Mutex;
 use io_bluetooth::bt::{self, BtStream};
 
-use crate::{ADDRESS, NUM_PEDALS};
+use crate::{command::Command, ADDRESS, NUM_PEDALS};
 
 const CONNECTION_ATTEMPTS: usize = 3;
 const READ_TIMEOUT: Duration = Duration::from_millis(1000);
@@ -58,7 +58,7 @@ impl IConnection {
         };
         socket.send(&cfg_req).unwrap();
 
-        let mut cfg_buffer: Vec<u8> = vec![0; (2 * NUM_PEDALS + 1) as usize];
+        let mut cfg_buffer: Vec<u8> = vec![0; NUM_PEDALS + NUM_PEDALS * size_of::<Command>()];
 
         socket.recv(&mut cfg_buffer).unwrap();
 

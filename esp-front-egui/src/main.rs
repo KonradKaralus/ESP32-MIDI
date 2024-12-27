@@ -2,6 +2,7 @@
 mod connection;
 mod icon;
 mod utils;
+mod command;
 
 use connection::{check_connection_status, get_connection, Connection};
 use eframe::egui::{self, vec2, IconData, Label, Pos2, RadioButton, Style, TextEdit};
@@ -16,7 +17,8 @@ use std::{
 
 pub const ADDRESS: &str = "78:21:84:8c:71:2a";
 
-const NUM_PEDALS: u8 = 6;
+const NUM_PEDALS: usize = 6;
+const CC_SEP: char = '/';
 
 fn main() -> Result<(), eframe::Error> {
     env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
@@ -59,7 +61,7 @@ struct MyApp {
 
 impl Default for MyApp {
     fn default() -> Self {
-        let loaded_config: IndexMap<u8, String> = IndexMap::with_capacity(NUM_PEDALS as usize);
+        let loaded_config: IndexMap<u8, String> = IndexMap::with_capacity(NUM_PEDALS);
 
         let c = get_connection();
         let c2 = c.clone();

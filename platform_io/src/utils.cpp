@@ -61,7 +61,7 @@ void send_config()
     }
     index += 2;
   }
-  SerialBT.write(bt_output_buffer, 2 * AMT_PEDALS + 1);
+  SerialBT.write(bt_output_buffer, 2 * AMT_PEDALS);
 }
 
 void update_config()
