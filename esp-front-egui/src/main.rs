@@ -1,8 +1,8 @@
 // #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
+mod command;
 mod connection;
 mod icon;
 mod utils;
-mod command;
 
 use connection::{check_connection_status, get_connection, Connection};
 use eframe::egui::{self, vec2, IconData, Label, Pos2, RadioButton, Style, TextEdit};
@@ -100,27 +100,29 @@ impl eframe::App for MyApp {
                 ui.label(self.get_connection_status());
             });
 
-            ui.columns(2, |columns| {
-                for (i, str) in self.columns.lock().unwrap().iter_mut() {
-                    columns[0].add_sized(vec2(20.0, 20.0), Label::new(i.to_string()));
-                    columns[1].add_sized(vec2(40.0, 20.0), TextEdit::singleline(str));
-                }
-            });
+            if self.is_connected() {
+                ui.columns(2, |columns| {
+                    for (i, str) in self.columns.lock().unwrap().iter_mut() {
+                        columns[0].add_sized(vec2(20.0, 20.0), Label::new(i.to_string()));
+                        columns[1].add_sized(vec2(40.0, 20.0), TextEdit::singleline(str));
+                    }
+                });
 
-            ui.horizontal(|ui| {
-                if ui.button("Send").clicked() {
-                    self.send_cfg();
-                }
-                if ui.button("Save").clicked() {
-                    self.serialize_cfg();
-                }
-                if ui.button("Load").clicked() {
-                    self.load_cfg();
-                }
-                if ui.button("Get").clicked() {
-                    self.req_cfg();
-                }
-            });
+                ui.horizontal(|ui| {
+                    if ui.button("Send").clicked() {
+                        self.send_cfg();
+                    }
+                    if ui.button("Save").clicked() {
+                        self.serialize_cfg();
+                    }
+                    if ui.button("Load").clicked() {
+                        self.load_cfg();
+                    }
+                    if ui.button("Get").clicked() {
+                        self.req_cfg();
+                    }
+                });
+            }
         });
     }
 }
