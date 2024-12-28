@@ -3,7 +3,7 @@ use std::{collections::HashMap, fs::File};
 use indexmap::IndexMap;
 use native_dialog::FileDialog;
 
-use crate::{command::Command, MyApp, CC_SEP, NUM_PEDALS};
+use crate::{command::Command, ControllerApp, CC_SEP, NUM_PEDALS};
 
 const ALIASES: [(&str, &str); 4] = [
     ("Down", "CC52"),
@@ -12,7 +12,7 @@ const ALIASES: [(&str, &str); 4] = [
     ("Tap", "CC64"),
 ];
 
-impl MyApp {
+impl ControllerApp {
     pub fn _print_current_cfg(&mut self) {
         println!("current cfg: {:?}", *self.columns.lock().unwrap());
     }
@@ -92,9 +92,6 @@ impl MyApp {
         let input = value;
 
         type_st += input.type_str();
-
-        // input &= 0x7F;
-        // type_st += &(input as i32).to_string();
 
         type_st += &input.value_str();
         type_st += &input.option_str();

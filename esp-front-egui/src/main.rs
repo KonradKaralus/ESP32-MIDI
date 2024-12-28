@@ -2,6 +2,7 @@
 mod command;
 mod connection;
 mod icon;
+mod tests;
 mod utils;
 
 use connection::{check_connection_status, get_connection, Connection};
@@ -46,12 +47,12 @@ fn main() -> Result<(), eframe::Error> {
             };
             _cc.egui_ctx.set_style(style);
             _cc.egui_ctx.set_pixels_per_point(2.5);
-            Box::<MyApp>::default()
+            Box::<ControllerApp>::default()
         }),
     )
 }
 
-struct MyApp {
+struct ControllerApp {
     columns: Arc<Mutex<IndexMap<u8, String>>>,
     _tempo: String,
     aliases: HashMap<String, String>,
@@ -59,7 +60,7 @@ struct MyApp {
     connection: Connection,
 }
 
-impl Default for MyApp {
+impl Default for ControllerApp {
     fn default() -> Self {
         let loaded_config: IndexMap<u8, String> = IndexMap::with_capacity(NUM_PEDALS);
 
@@ -70,7 +71,7 @@ impl Default for MyApp {
             check_connection_status(c2);
         });
 
-        let aliases = MyApp::get_aliases();
+        let aliases = ControllerApp::get_aliases();
 
         Self {
             columns: Arc::new(Mutex::new(loaded_config)),
@@ -82,7 +83,7 @@ impl Default for MyApp {
     }
 }
 
-impl eframe::App for MyApp {
+impl eframe::App for ControllerApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         ctx.request_repaint_after(Duration::from_millis(250));
         egui::CentralPanel::default().show(ctx, |ui| {
@@ -100,29 +101,33 @@ impl eframe::App for MyApp {
                 ui.label(self.get_connection_status());
             });
 
-            if self.is_connected() {
-                ui.columns(2, |columns| {
-                    for (i, str) in self.columns.lock().unwrap().iter_mut() {
-                        columns[0].add_sized(vec2(20.0, 20.0), Label::new(i.to_string()));
-                        columns[1].add_sized(vec2(40.0, 20.0), TextEdit::singleline(str));
-                    }
-                });
-
-                ui.horizontal(|ui| {
-                    if ui.button("Send").clicked() {
-                        self.send_cfg();
-                    }
-                    if ui.button("Save").clicked() {
-                        self.serialize_cfg();
-                    }
-                    if ui.button("Load").clicked() {
-                        self.load_cfg();
-                    }
-                    if ui.button("Get").clicked() {
-                        self.req_cfg();
-                    }
-                });
+            if !self.is_connected() {
+                return;
             }
+
+            ui.columns(2, |columns| {
+                for (i, str) in self.columns.lock().unwrap().iter_mut() {
+                    columns[0].add_sized(vec2(20.0, 20.0), Label::new(i.to_string()));
+                    columns[1].add_sized(vec2(40.0, 20.0), TextEdit::singleline(str));
+                }
+            });
+
+            ui.horizontal(|ui| {
+                if ui.button("Send").clicked() {
+                    self.send_cfg();
+                }
+                if ui.button("Save").clicked() {
+                    self.serialize_cfg();
+                }
+                if ui.button("Load").clicked() {
+                    self.load_cfg();
+                }
+                if ui.button("Get").clicked() {
+                    self.req_cfg();
+                }
+            });
+
+            ui.label(format!("Format: CC|PC<val>{}<on>,<off>", CC_SEP));
         });
     }
 }
