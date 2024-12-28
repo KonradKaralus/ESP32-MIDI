@@ -37,7 +37,7 @@ fn main() -> Result<(), eframe::Error> {
     };
 
     eframe::run_native(
-        "My egui App",
+        "MIDI-Controller",
         options,
         Box::new(|_cc| {
             let style = Style {
