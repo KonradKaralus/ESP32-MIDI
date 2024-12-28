@@ -60,8 +60,8 @@ impl MyApp {
 
             loaded_config.insert(ped, value);
 
-            index += 2;
-            if index >= NUM_PEDALS * 2 {
+            index += size_of::<Command>() + 1;
+            if index >= cfg.len() {
                 break;
             }
         }

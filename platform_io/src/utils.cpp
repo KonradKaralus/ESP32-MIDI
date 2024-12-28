@@ -1,10 +1,5 @@
 #include "utils.hpp"
 
-void clear_tempo_list()
-{
-  tempo_list.clear();
-}
-
 void first_config()
 {
   cfg.begin("config", false);
@@ -12,35 +7,24 @@ void first_config()
   cfg.putBool("init", true);
   for (u_int8_t i = 1; i <= AMT_PEDALS; i++)
   {
-    cfg.putUChar(std::to_string(i).c_str(), 100 + i);
-  }
-  cfg.putUChar("tempo_size", 0);
+    Command cmd = Command{0, 100 + i, 0xff, 0xff};
 
+    cfg.putBytes(std::to_string(i).c_str(), &cmd, sizeof(Command));
+  }
   cfg.end();
 }
 
 void load_config()
 {
   cfg.begin("config", true);
+  Command cmd;
   for (u_int8_t i = 1; i <= AMT_PEDALS; i++)
   {
-    u_int8_t target = cfg.getUChar(std::to_string(i).c_str(), 0);
-    if (target == 0XFF)
-    {
-      routings[i] = {OutputType::tempo_list_cmd, 0};
-    }
-    else
-    {
-      routings[i] = {OutputType::midi_cmd, target};
-    }
+    // u_int8_t target = cfg.getUChar(std::to_string(i).c_str(), 0);
+    cfg.getBytes(std::to_string(i).c_str(), &cmd, sizeof(Command));
+    routings[i] = cmd;
   }
 
-  tempo_list.clear();
-  for (int i = 0; i < int(cfg.getUChar("tempo_size")); i++)
-  {
-    float tempo = cfg.getFloat(("T" + std::to_string(i)).c_str());
-    tempo_list.push_back(tempo);
-  }
   cfg.end();
 }
 
@@ -51,17 +35,16 @@ void send_config()
   for (auto &it : routings)
   {
     bt_output_buffer[index] = it.first;
-    if (it.second.type == OutputType::tempo_list_cmd)
+    u_int8_t *bytes = (u_int8_t *)(void *)&it.second;
+
+    for (int i = 0; i < sizeof(Command); i++)
     {
-      bt_output_buffer[index + 1] = 0xFF;
+      bt_output_buffer[index + 1 + i] = bytes[i];
     }
-    else
-    {
-      bt_output_buffer[index + 1] = it.second.command;
-    }
-    index += 2;
+
+    index += sizeof(Command) + 1;
   }
-  SerialBT.write(bt_output_buffer, 2 * AMT_PEDALS);
+  SerialBT.write(bt_output_buffer, AMT_PEDALS * sizeof(Command) + AMT_PEDALS);
 }
 
 void update_config()
@@ -71,7 +54,7 @@ void update_config()
   cfg.begin("config", false);
 
   u_int8_t pedal;
-  u_int8_t value;
+  Command *cmd;
 
   while (true)
   {
@@ -80,97 +63,19 @@ void update_config()
       break;
     }
     pedal = bt_input_buffer[index];
-    value = bt_input_buffer[index + 1];
+    cmd = (Command *)bt_input_buffer[index + 1];
 
-    cfg.putUChar(std::to_string(pedal).c_str(), value);
+    cfg.putBytes(std::to_string(pedal).c_str(), cmd, sizeof(Command));
 
-    index += 2;
+    index += sizeof(Command) + 1;
   }
   cfg.end();
 
   cfg_updated = true;
-}
-
-void update_tempo_list()
-{
-  cfg.begin("config", false);
-  int tempolist_idx = 0;
-  int idx = 1;
-  while (true)
-  {
-    float f;
-    uint8_t *f_ptr = (uint8_t *)&f;
-
-    f_ptr[3] = bt_input_buffer[idx + 3];
-    f_ptr[2] = bt_input_buffer[idx + 2];
-    f_ptr[1] = bt_input_buffer[idx + 1];
-    f_ptr[0] = bt_input_buffer[idx];
-
-    cfg.putFloat(("T" + std::to_string(tempolist_idx)).c_str(), f);
-    idx += 4;
-    if (bt_input_buffer[idx] == 0x00 && bt_input_buffer[idx + 1] == 0x00 && bt_input_buffer[idx + 2] == 0x00 && bt_input_buffer[idx + 3] == 0x00 && bt_input_buffer[idx + 4] == 0x00)
-    {
-      break;
-    }
-    tempolist_idx++;
-  }
-
-  cfg.putUChar("tempo_size", tempolist_idx + 1);
-
-  tempo_list_idx = 0;
-  cfg.end();
-  cfg_updated = true;
-}
-
-void send_tempo_change()
-{
-  float f;
-
-  uint8_t *f_ptr = (uint8_t *)&f;
-
-  f_ptr[3] = bt_input_buffer[4];
-  f_ptr[2] = bt_input_buffer[3];
-  f_ptr[1] = bt_input_buffer[2];
-  f_ptr[0] = bt_input_buffer[1];
-
-  float tempo = f;
-  send_tempo(tempo);
-}
-
-void send_midi_signal()
-{
-  if (bt_input_buffer[1] == 0xFF)
-  {
-    tempo_list_next();
-  }
-  else
-  {
-    sendOutput(bt_input_buffer[1]);
-  }
-}
-
-void pedal()
-{
-  if (bt_input_buffer[1] == 0x00)
-  {
-    return;
-  }
-  sendOutput(routings[bt_input_buffer[1]].command);
 }
 
 void heartbeat_response()
 {
-  // int index = 0;
-
-  // for(auto& it:routings) {
-  //   bt_output_buffer[index] = it.first;
-  //   if(it.second.type == OutputType::tempo_list_cmd) {
-  //     bt_output_buffer[index+1] = 0xFF;
-  //   } else {
-  //     bt_output_buffer[index+1] = it.second.command;
-  //   }
-  //   index+=2;
-  // }
   bt_output_buffer[0] = 2;
   SerialBT.write(bt_output_buffer, 1);
 }
@@ -190,14 +95,6 @@ void process_input()
   case 2:
     heartbeat_response();
     break;
-    // case 3:
-    //   pedal();
-    //   break;
-    // case 4:
-    //   send_tempo_change();
-    //   break;
-    // case 5:
-    //   update_tempo_list();
   }
 }
 

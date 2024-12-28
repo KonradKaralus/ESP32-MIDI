@@ -1,20 +1,18 @@
 #include "utils.hpp"
 
-
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial2, MIDI);
 
 Adafruit_NeoPixel leds = Adafruit_NeoPixel(LED_COUNT, PIN, NEO_GRB + NEO_KHZ800);
 
-std::vector<float> tempo_list;
 pthread_t tempo_thread;
 
-std::unordered_map<u_int8_t, output> routings; // command-routing
+std::unordered_map<u_int8_t, Command> routings; // command-routing
 Preferences cfg;
 BluetoothSerial SerialBT;
 
 pin_state states[AMT_PEDALS];
 
-u_int8_t pins[] = {13,14,27,26,25,33};
+u_int8_t pins[] = {13, 14, 27, 26, 25, 33};
 std::unordered_map<u_int8_t, uint8_t> pin_routings; // hardware-routing
 
 u_int8_t bt_input_buffer[134];
@@ -22,27 +20,33 @@ u_int8_t bt_output_buffer[134];
 
 bool cfg_updated = false;
 
-unsigned int tempo_list_idx = 0;
 double brightness = 0.8;
 
 std::array<u_int8_t, 3> color;
 
 bool LED_down = false;
 
-void sendOutput(u_int8_t msg) {
-    uint8_t type = msg & 0x80;
-    msg = msg & 0x7F;
+void sendOutput(Command *cmd, bool state)
+{
+  switch (cmd->signal_type)
+  {
+  case 0x00:
+    MIDI.sendProgramChange(cmd->value, 1);
+    break;
+  case 0xff:
+    MIDI.sendControlChange(cmd->value, state ? cmd->on_activate : cmd->on_deactivate, 1);
+    break;
 
-    if(type == 0) {
-        MIDI.sendProgramChange(msg, 1);
-    } else {
-        MIDI.sendControlChange(midi::DataByte(msg), CC_DEFAULT, 1);
-    }
-    delay(200);
+  default:
+    break;
+  }
+  delay(200);
 }
 
-void *thread_tempo(void *tempo) {
-  int u_delay = (60*1000000) / *((float*)tempo);
+/*
+void *thread_tempo(void *tempo)
+{
+  int u_delay = (60 * 1000000) / *((float *)tempo);
 
   MIDI.sendControlChange(midi::DataByte(0x40), 120, 1);
   delayMicroseconds(u_delay);
@@ -52,36 +56,18 @@ void *thread_tempo(void *tempo) {
   pthread_exit(NULL);
 }
 
-void send_tempo(float tempo) {
-  int ret = pthread_create(&tempo_thread, NULL, thread_tempo, (void *) &tempo);
-  if (ret) {
-      Serial.println("An error has occurred");
+void send_tempo(float tempo)
+{
+  int ret = pthread_create(&tempo_thread, NULL, thread_tempo, (void *)&tempo);
+  if (ret)
+  {
+    Serial.println("An error has occurred");
   }
 }
-
-void tempo_list_next() {
-  if(tempo_list_idx >= tempo_list.size()) {
-    return;
-  }
-  tempo_list_idx++;  
-  float tempo = tempo_list[tempo_list_idx];
-  send_tempo(tempo);  
-}
-
-//currently not in use
-void tempo_list_prev() {
-  if(tempo_list_idx <= tempo_list.size()) {
-    return;
-  }
-  tempo_list_idx--;  
-
-  float tempo = tempo_list[tempo_list_idx];
-  send_tempo(tempo);  
-}
-
-
-void setup() {
-  MIDI.begin(1); //todo use!!!
+*/
+void setup()
+{
+  MIDI.begin(1); // todo use!!!
 
   pinMode(13, INPUT_PULLUP);
   pinMode(14, INPUT_PULLUP);
@@ -89,22 +75,23 @@ void setup() {
   pinMode(26, INPUT_PULLUP);
   pinMode(25, INPUT_PULLUP);
   pinMode(33, INPUT_PULLUP);
-  
+
   Serial.begin(115200);
 
   Serial2.begin(31250);
 
-  cfg.begin("config",true);
+  cfg.begin("config", true);
 
   bool init = cfg.isKey("init");
 
-  if(!init) {
-      cfg.end();
-      first_config();
+  if (!init)
+  {
+    cfg.end();
+    first_config();
   }
 
   load_config();
-  
+
   pin_routings[13] = 1;
   pin_routings[14] = 2;
   pin_routings[27] = 3;
@@ -112,7 +99,8 @@ void setup() {
   pin_routings[25] = 5;
   pin_routings[33] = 6;
 
-  for(int i = 0; i<AMT_PEDALS; i++) {
+  for (int i = 0; i < AMT_PEDALS; i++)
+  {
     pin_state ps;
     ps.signal = 0;
     ps.state = (bool)digitalRead(pins[i]);
@@ -136,31 +124,29 @@ first bit indicates if PC or CC
 last seven bits are message
 */
 
-void loop() {
+void loop()
+{
 
   u_int8_t pedal_nr;
 
-  for(u_int8_t pin_nr : pins) {
+  for (u_int8_t pin_nr : pins)
+  {
     pedal_nr = pin_routings[pin_nr];
 
-    if(check_signal(pedal_nr, (bool)digitalRead(pin_nr))) {
+    bool state = (bool)digitalRead(pin_nr);
+
+    if (check_signal(pedal_nr, state))
+    {
       set_LED(LED::GREEN);
 
-
-      if(routings[pedal_nr].type == OutputType::midi_cmd) {
-        sendOutput(routings[pedal_nr].command);
-      } else if(routings[pedal_nr].type == OutputType::tempo_list_cmd) {
-        tempo_list_next();
-      }
-
+      sendOutput(&routings[pedal_nr], state);
     }
-  } 
+  }
 
-
-
-    cycle_LED();
-    if(cfg_updated) {
-      load_config();
-      cfg_updated = false;
-    }
+  cycle_LED();
+  if (cfg_updated)
+  {
+    load_config();
+    cfg_updated = false;
+  }
 }
