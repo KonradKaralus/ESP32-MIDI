@@ -2,7 +2,6 @@
 mod command;
 mod connection;
 mod icon;
-mod tests;
 mod utils;
 
 use connection::{check_connection_status, get_connection, Connection};
@@ -19,7 +18,7 @@ use std::{
 pub const ADDRESS: &str = "78:21:84:8c:71:2a";
 
 const NUM_PEDALS: usize = 6;
-const CC_SEP: char = '/';
+const COMMAND_SEP: char = '/';
 
 fn main() -> Result<(), eframe::Error> {
     env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
@@ -84,6 +83,7 @@ impl Default for ControllerApp {
 }
 
 impl eframe::App for ControllerApp {
+    #[allow(clippy::collapsible_if)]
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         ctx.request_repaint_after(Duration::from_millis(250));
         egui::CentralPanel::default().show(ctx, |ui| {
@@ -127,7 +127,7 @@ impl eframe::App for ControllerApp {
                 }
             });
 
-            ui.label(format!("Format: CC|PC<val>{}<on>,<off>", CC_SEP));
+            ui.label(format!("Format: CC|PC<val>{}<on>,<off>", COMMAND_SEP));
         });
     }
 }

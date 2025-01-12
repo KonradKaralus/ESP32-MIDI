@@ -3,7 +3,7 @@ use std::{collections::HashMap, fs::File};
 use indexmap::IndexMap;
 use native_dialog::FileDialog;
 
-use crate::{command::Command, ControllerApp, CC_SEP, NUM_PEDALS};
+use crate::{command::Command, ControllerApp, NUM_PEDALS};
 
 const ALIASES: [(&str, &str); 4] = [
     ("Down", "CC52"),
@@ -88,13 +88,7 @@ impl ControllerApp {
     }
 
     fn cfg_str_from_value(&self, value: Command) -> String {
-        let mut type_st = "".to_string();
-        let input = value;
-
-        type_st += input.type_str();
-
-        type_st += &input.value_str();
-        type_st += &input.option_str();
+        let mut type_st = value.as_str().unwrap(); // TODO: pass option to frontend
 
         if let Some(s) = self.match_alias_rev(&type_st) {
             type_st = s.clone()
@@ -103,56 +97,14 @@ impl ControllerApp {
         type_st
     }
 
-    // PC<num> or CC<num>|<ac>,<deac>
+    // PC<num> or CC<num>|<ac>,<deac>|c<channel> (channel and ac,dc are optional)
     fn command_from_str(&self, cmd: &String) -> Option<Command> {
         let input: String = match self.match_alias(cmd) {
             Some(n) => n.clone(),
             None => cmd.clone(),
         };
 
-        if input.contains("CC") {
-            let stripped = input.replace("CC", "");
-
-            if !stripped.contains(CC_SEP) {
-                let o_value = stripped.parse();
-                if o_value.is_err() {
-                    return None;
-                }
-                let value: u8 = o_value.unwrap();
-
-                return Some(Command::new_cc_simple(value));
-            }
-
-            let split: Vec<&str> = stripped.split("|").collect();
-            if split.len() != 2 {
-                return None;
-            }
-
-            let o_value = split[0].parse();
-            if o_value.is_err() {
-                return None;
-            }
-            let value: u8 = o_value.unwrap();
-
-            let o_opts: Vec<Result<u8, _>> = split[1].split(",").map(|n| n.parse::<u8>()).collect();
-            if o_opts.iter().any(|n| n.is_err()) || o_opts.len() != 2 {
-                return None;
-            }
-            let on_activate = *o_opts[0].as_ref().unwrap();
-            let on_deactivate = *o_opts[1].as_ref().unwrap();
-
-            return Some(Command::new_cc(value, on_activate, on_deactivate));
-        } else if input.contains("PC") {
-            let o_value = input.replace("PC", "").parse();
-            if o_value.is_err() {
-                return None;
-            }
-            let value: u8 = o_value.unwrap();
-
-            return Some(Command::new_pc(value));
-        }
-
-        None
+        Command::from_string(input)
     }
 
     pub fn serialize_cfg(&mut self) {
