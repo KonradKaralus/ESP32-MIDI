@@ -77,7 +77,7 @@ impl ControllerApp {
         let cfg = self.columns.lock().unwrap();
 
         for (pedal, input) in cfg.iter() {
-            let num_value = self.command_from_str(input).unwrap();
+            let num_value = self.command_from_str(input).unwrap(); // TODO: pass this to frontend 
 
             output_buffer.push(*pedal);
             output_buffer.extend_from_slice(num_value.as_bytes());

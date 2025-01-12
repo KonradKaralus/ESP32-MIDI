@@ -127,7 +127,10 @@ impl eframe::App for ControllerApp {
                 }
             });
 
-            ui.label(format!("Format: CC|PC<val>{}<on>,<off>", COMMAND_SEP));
+            ui.label(format!(
+                "Format: CC|PC<val>{}<on>,<off>{}c<channel>",
+                COMMAND_SEP, COMMAND_SEP
+            ));
         });
     }
 }
