@@ -31,10 +31,10 @@ void sendOutput(Command *cmd, bool state)
   switch (cmd->signal_type)
   {
   case 0x00:
-    MIDI.sendProgramChange(cmd->value, 1);
+    MIDI.sendProgramChange(cmd->value, cmd->channel);
     break;
   case 0xff:
-    MIDI.sendControlChange(cmd->value, state ? cmd->on_activate : cmd->on_deactivate, 1);
+    MIDI.sendControlChange(cmd->value, state ? cmd->on_activate : cmd->on_deactivate, cmd->channel);
     break;
 
   default:
@@ -82,7 +82,7 @@ void setup()
 
   cfg.begin("config", true);
 
-  bool init = cfg.isKey("init");
+  bool init = cfg.isKey("init2");
 
   if (!init)
   {
@@ -114,15 +114,6 @@ void setup()
   set_LED(LED::GREEN);
   leds.begin();
 }
-
-/*
-self doc for u_int8 in routings/cfg
-first bit indicates if PC or CC
-0 -> PC
-1 -> CC
-
-last seven bits are message
-*/
 
 void loop()
 {

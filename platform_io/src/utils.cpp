@@ -4,10 +4,10 @@ void first_config()
 {
   cfg.begin("config", false);
 
-  cfg.putBool("init", true);
+  cfg.putBool("init2", true);
   for (u_int8_t i = 1; i <= AMT_PEDALS; i++)
   {
-    Command cmd = Command{0, 100 + i, 0xff, 0xff};
+    Command cmd = Command{0, 100 + i, 0xff, 0xff, 0x01};
 
     cfg.putBytes(std::to_string(i).c_str(), &cmd, sizeof(Command));
   }

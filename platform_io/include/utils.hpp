@@ -29,6 +29,7 @@ struct Command
   u_int8_t value;
   u_int8_t on_activate;
   u_int8_t on_deactivate;
+  u_int8_t channel;
 };
 enum LED
 {
